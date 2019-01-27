@@ -1,31 +1,45 @@
 #include <string>
 #include <vector>
 
-std::vector<std::string::size_type> findBreakPoints(
+struct LineBreaks {
+	std::string::size_type first;
+	std::string::size_type second;
+};
+
+struct LineBoundaries {
+	int first;
+	int last;
+};
+
+LineBreaks findLineBreaks(
 	std::string content, 
-	std::vector<int> boundaries
+	LineBoundaries boundaries
 ) {
-	std::vector<std::string::size_type> breakPoints{};
+	LineBreaks breakPoints{};
 	auto found = content.find('\n');
-	breakPoints.push_back(found);
-	found = content.find('\n', found + 1);
-	breakPoints.push_back(found);
+	auto something = boundaries.first - 1;
+	for (int i = 0; i < something - 1; ++i)
+		found = content.find('\n', found + 1);
+	breakPoints.first = found;
+	for (int i = 0; i < boundaries.last - something; ++i)
+		found = content.find('\n', found + 1);
+	breakPoints.second = found;
 	return breakPoints;
 }
 
 std::string extractFunction(
 	std::string original, 
-	std::vector<int> lineBoundaries, 
+	LineBoundaries lineBoundaries,
 	std::string newName
 ) {
-	auto points = findBreakPoints(original, lineBoundaries);
+	auto points = findLineBreaks(original, lineBoundaries);
 	return 
-		original.substr(0, points.front()) +
-		original.substr(points.back()) +
+		original.substr(0, points.first) +
+		original.substr(points.second) +
 		"\n"
 		"\n"
 		"void " + newName + "() {\n" +
-		original.substr(points.front() + 1, points.back() - points.front()) +
+		original.substr(points.first + 1, points.second - points.first) +
 		"}";
 }
 
