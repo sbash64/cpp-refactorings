@@ -34,7 +34,8 @@ std::string extractFunction(
 ) {
 	auto points = findLineBreaks(original, lineBoundaries);
 	return 
-		original.substr(0, points.first) +
+		original.substr(0, points.first + 1) +
+		"    " + newName + "();" +
 		original.substr(points.second) +
 		"\n"
 		"\n"
