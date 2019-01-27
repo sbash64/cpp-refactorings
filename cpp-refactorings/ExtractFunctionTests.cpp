@@ -76,9 +76,10 @@ TEST_F(ExtractFunctionTests, oneLineNoArgumentsVoidReturn) {
 	);
 }
 
-TEST_F(ExtractFunctionTests, DISABLED_twoLinesNoArgumentsVoidReturn) {
+TEST_F(ExtractFunctionTests, twoLinesNoArgumentsVoidReturn) {
 	assertEqual(
 		"void f() {\n"
+		"    g();\n"
 		"    c();\n"
 		"}\n"
 		"\n"
