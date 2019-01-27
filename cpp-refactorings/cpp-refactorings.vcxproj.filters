@@ -15,7 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="ExtractMemberFunctionTests.cpp">
+    <ClCompile Include="ExtractFunctionTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
