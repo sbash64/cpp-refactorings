@@ -29,11 +29,26 @@ LineBreaks findLineBreaks(
 
 LineBreaks findParameterBreaks(std::string line) {
 	LineBreaks breaks{};
-	auto found = line.find('(');
-	breaks.first = found;
-	found = line.find(')', found + 1);
-	breaks.second = found;
+	breaks.first = line.find('(');
+	breaks.second = line.find(')', breaks.first + 1);
 	return breaks;
+}
+
+std::string betweenBreaks(std::string content, LineBreaks breaks) {
+	return content.substr(
+		breaks.first + 1,
+		breaks.second - breaks.first - 1
+	);
+}
+
+std::string betweenIncludingSecondBreak(
+	std::string content, 
+	LineBreaks breaks
+) {
+	return content.substr(
+		breaks.first + 1,
+		breaks.second - breaks.first
+	);
 }
 
 std::string extractFunction(
@@ -41,19 +56,24 @@ std::string extractFunction(
 	LineBoundaries lineBoundaries,
 	std::string newName
 ) {
-	auto points = findLineBreaks(original, lineBoundaries);
-	auto extracted = original.substr(points.first + 1, points.second - points.first);
-	auto parameters = findParameterBreaks(extracted);
-	auto containingFunctionLine = original.substr(0, points.first + 1);
-	auto signatureParameters = findParameterBreaks(containingFunctionLine);
+	auto extractionBreaks = findLineBreaks(original, lineBoundaries);
+	auto extractedBody = betweenIncludingSecondBreak(original, extractionBreaks);
+	auto parameters = findParameterBreaks(extractedBody);
+	auto extractedFunctionParameterInvocation = betweenBreaks(extractedBody, parameters);
+	auto parentFunctionFirstLine = original.substr(0, extractionBreaks.first + 1);
+	auto parentFunctionParameterDeclaration = findParameterBreaks(parentFunctionFirstLine);
+	auto extractedFunctionParameterDeclaration = betweenBreaks(parentFunctionFirstLine, parentFunctionParameterDeclaration);
+	auto extractedFunctionInvocation = newName + "(" + extractedFunctionParameterInvocation + ");";
+	auto remainingParentFunction = original.substr(extractionBreaks.second);
+	auto extractedFunctionSignature = "void " + newName + "(" + extractedFunctionParameterDeclaration + ")";
 	return 
-		original.substr(0, points.first + 1) +
-		"    " + newName + "(" + extracted.substr(parameters.first + 1, parameters.second - parameters.first - 1) + ");" +
-		original.substr(points.second) +
+		parentFunctionFirstLine +
+		"    " + extractedFunctionInvocation +
+		remainingParentFunction +
 		"\n"
-		"\n"
-		"void " + newName + "(" + containingFunctionLine.substr(signatureParameters.first + 1, signatureParameters.second - signatureParameters.first - 1) + ") {\n" +
-		extracted +
+		"\n" +
+		extractedFunctionSignature + " {\n" +
+		extractedBody +
 		"}";
 }
 
