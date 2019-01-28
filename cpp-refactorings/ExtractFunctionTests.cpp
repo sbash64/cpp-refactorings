@@ -27,20 +27,33 @@ LineBreaks findLineBreaks(
 	return breakPoints;
 }
 
+LineBreaks findParameterBreaks(std::string line) {
+	LineBreaks breaks{};
+	auto found = line.find('(');
+	breaks.first = found;
+	found = line.find(')', found + 1);
+	breaks.second = found;
+	return breaks;
+}
+
 std::string extractFunction(
 	std::string original, 
 	LineBoundaries lineBoundaries,
 	std::string newName
 ) {
 	auto points = findLineBreaks(original, lineBoundaries);
+	auto extracted = original.substr(points.first + 1, points.second - points.first);
+	auto parameters = findParameterBreaks(extracted);
+	auto containingFunctionLine = original.substr(0, points.first + 1);
+	auto signatureParameters = findParameterBreaks(containingFunctionLine);
 	return 
 		original.substr(0, points.first + 1) +
-		"    " + newName + "();" +
+		"    " + newName + "(" + extracted.substr(parameters.first + 1, parameters.second - parameters.first - 1) + ");" +
 		original.substr(points.second) +
 		"\n"
 		"\n"
-		"void " + newName + "() {\n" +
-		original.substr(points.first + 1, points.second - points.first) +
+		"void " + newName + "(" + containingFunctionLine.substr(signatureParameters.first + 1, signatureParameters.second - signatureParameters.first - 1) + ") {\n" +
+		extracted +
 		"}";
 }
 
