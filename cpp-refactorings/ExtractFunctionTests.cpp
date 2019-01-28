@@ -62,7 +62,9 @@ std::string extractFunction(
 	auto extractedFunctionParameterInvocation = betweenBreaks(extractedBody, parameters);
 	auto parentFunctionFirstLine = original.substr(0, extractionBreaks.first + 1);
 	auto parentFunctionParameterDeclaration = findParameterBreaks(parentFunctionFirstLine);
-	auto extractedFunctionParameterDeclaration = betweenBreaks(parentFunctionFirstLine, parentFunctionParameterDeclaration);
+	auto extractedFunctionParameterDeclaration = extractedFunctionParameterInvocation.empty() 
+		? ""
+		: betweenBreaks(parentFunctionFirstLine, parentFunctionParameterDeclaration);
 	auto extractedFunctionInvocation = newName + "(" + extractedFunctionParameterInvocation + ");";
 	auto remainingParentFunction = original.substr(extractionBreaks.second);
 	auto extractedFunctionSignature = "void " + newName + "(" + extractedFunctionParameterDeclaration + ")";
