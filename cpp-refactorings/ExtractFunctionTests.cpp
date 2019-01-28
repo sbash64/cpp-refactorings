@@ -152,3 +152,26 @@ TEST_F(ExtractFunctionTests, oneLineOneArgumentVoidReturn) {
 		)
 	);
 }
+
+TEST_F(ExtractFunctionTests, twoLinesOneArgumentVoidReturn) {
+	assertEqual(
+		"void f(int x) {\n"
+		"    g(x);\n"
+		"    c();\n"
+		"}\n"
+		"\n"
+		"void g(int x) {\n"
+		"    a(x);\n"
+		"    b(x);\n"
+		"}",
+		extractFunction(
+			"void f(int x) {\n"
+			"    a(x);\n"
+			"    b(x);\n"
+			"    c();\n"
+			"}",
+			{ 2, 3 },
+			"g"
+		)
+	);
+}
