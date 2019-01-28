@@ -180,7 +180,7 @@ TEST_F(ExtractFunctionTests, oneLineTwoArgumentsVoidReturn) {
 	assertEqual(
 		"void f(int x, int y) {\n"
 		"    g(x, y);\n"
-		"    c();\n"
+		"    b();\n"
 		"}\n"
 		"\n"
 		"void g(int x, int y) {\n"
