@@ -196,3 +196,26 @@ TEST_F(ExtractFunctionTests, oneLineTwoArgumentsVoidReturn) {
 		)
 	);
 }
+
+TEST_F(ExtractFunctionTests, twoLinesTwoArgumentsVoidReturn) {
+	assertEqual(
+		"void f(int x, int y) {\n"
+		"    g(x, y);\n"
+		"    c();\n"
+		"}\n"
+		"\n"
+		"void g(int x, int y) {\n"
+		"    a(x, y);\n"
+		"    b(x, y);\n"
+		"}",
+		extractFunction(
+			"void f(int x, int y) {\n"
+			"    a(x, y);\n"
+			"    b(x, y);\n"
+			"    c();\n"
+			"}",
+			{ 2, 3 },
+			"g"
+		)
+	);
+}
