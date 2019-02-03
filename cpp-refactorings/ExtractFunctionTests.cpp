@@ -51,6 +51,13 @@ std::string betweenIncludingSecondBreak(
 	);
 }
 
+std::string upToAndIncludingFirstBreak(
+	std::string content,
+	LineBreaks breaks
+) {
+	return content.substr(0, breaks.first + 1);
+}
+
 std::string extractFunction(
 	std::string original, 
 	LineBoundaries lineBoundaries,
@@ -60,7 +67,7 @@ std::string extractFunction(
 	auto extractedBody = betweenIncludingSecondBreak(original, extractionBreaks);
 	auto parameters = findParameterBreaks(extractedBody);
 	auto extractedFunctionParameterInvocation = betweenBreaks(extractedBody, parameters);
-	auto parentFunctionFirstLine = original.substr(0, extractionBreaks.first + 1);
+	auto parentFunctionFirstLine = upToAndIncludingFirstBreak(original, extractionBreaks);
 	auto parentFunctionParameterDeclaration = findParameterBreaks(parentFunctionFirstLine);
 	auto extractedFunctionParameterDeclaration = extractedFunctionParameterInvocation.empty() 
 		? ""
