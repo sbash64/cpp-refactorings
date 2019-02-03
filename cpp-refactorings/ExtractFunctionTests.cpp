@@ -11,19 +11,22 @@ struct LineBoundaries {
 	int last;
 };
 
+std::string::size_type find_nth_element(std::string content, int n, char what) {
+	if (n < 1)
+		return std::string::npos;
+	auto found = content.find(what);
+	for (int i = 0; i < n - 1; ++i)
+		found = content.find(what, found + 1);
+	return found;
+}
+
 ContentBreaks findLineBreaks(
 	std::string content, 
 	LineBoundaries boundaries
 ) {
 	ContentBreaks breaks{};
-	auto found = content.find('\n');
-	auto something = boundaries.first - 1;
-	for (int i = 0; i < something - 1; ++i)
-		found = content.find('\n', found + 1);
-	breaks.first = found;
-	for (int i = 0; i < boundaries.last - something; ++i)
-		found = content.find('\n', found + 1);
-	breaks.second = found;
+	breaks.first = find_nth_element(content, boundaries.first - 1, '\n');
+	breaks.second = find_nth_element(content, boundaries.last, '\n');
 	return breaks;
 }
 
@@ -58,6 +61,14 @@ std::string upToAndIncludingFirstBreak(
 	return content.substr(0, breaks.first + 1);
 }
 
+
+std::string secondBreakAndAfter(
+	std::string content,
+	ContentBreaks breaks
+) {
+	return content.substr(breaks.second);
+}
+
 std::string extractFunction(
 	std::string original, 
 	LineBoundaries lineBoundaries,
@@ -65,16 +76,23 @@ std::string extractFunction(
 ) {
 	auto extractionBreaks = findLineBreaks(original, lineBoundaries);
 	auto extractedBody = betweenIncludingSecondBreak(original, extractionBreaks);
-	auto extractedFunctionParameterInvocation = 
-		betweenBreaks(extractedBody, findParameterListBreaks(extractedBody));
+	auto extractedFunctionInvokedParameterList = 
+		betweenBreaks(
+			extractedBody, 
+			findParameterListBreaks(extractedBody)
+		);
 	auto parentFunctionFirstLine = upToAndIncludingFirstBreak(original, extractionBreaks);
-	auto parentFunctionParameterList = findParameterListBreaks(parentFunctionFirstLine);
-	auto extractedFunctionParameterList = extractedFunctionParameterInvocation.empty() 
+	auto extractedFunctionParameterList = extractedFunctionInvokedParameterList.empty() 
 		? ""
-		: betweenBreaks(parentFunctionFirstLine, parentFunctionParameterList);
-	auto extractedFunctionInvocation = newName + "(" + extractedFunctionParameterInvocation + ");";
-	auto remainingParentFunction = original.substr(extractionBreaks.second);
-	auto extractedFunctionDeclaration = "void " + newName + "(" + extractedFunctionParameterList + ")";
+		: betweenBreaks(
+			parentFunctionFirstLine, 
+			findParameterListBreaks(parentFunctionFirstLine)
+		);
+	auto extractedFunctionInvocation = 
+		newName + "(" + extractedFunctionInvokedParameterList + ");";
+	auto remainingParentFunction = secondBreakAndAfter(original, extractionBreaks);
+	auto extractedFunctionDeclaration = 
+		"void " + newName + "(" + extractedFunctionParameterList + ")";
 	return 
 		parentFunctionFirstLine +
 		"    " + extractedFunctionInvocation +
