@@ -310,7 +310,7 @@ TEST_F(ExtractFunctionTests, oneLineOneFlyOverArgumentVoidReturn) {
 	);
 }
 
-TEST_F(ExtractFunctionTests, oneLineNoArgumentsNonVoidReturn) {
+TEST_F(ExtractFunctionTests, DISABLED_oneLineNoArgumentsNonVoidReturn) {
 	assertEqual(
 		"void f() {\n"
 		"    int x = g();\n"
