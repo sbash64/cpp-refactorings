@@ -384,7 +384,7 @@ TEST_F(ExtractFunctionTests, oneLineNoArgumentsNonVoidReturn) {
 	assertEqual(
 		"void f() {\n"
 		"    int x = g();\n"
-		"    b();\n"
+		"    b(x);\n"
 		"}\n"
 		"\n"
 		"int g() {\n"
@@ -394,7 +394,7 @@ TEST_F(ExtractFunctionTests, oneLineNoArgumentsNonVoidReturn) {
 		extractFunction(
 			"void f() {\n"
 			"    int x = a();\n"
-			"    b();\n"
+			"    b(x);\n"
 			"}",
 			{ 2, 2 },
 			"g"
@@ -406,7 +406,7 @@ TEST_F(ExtractFunctionTests, twoLinesNoArgumentsNonVoidReturn) {
 	assertEqual(
 		"void f() {\n"
 		"    int x = g();\n"
-		"    c();\n"
+		"    c(x);\n"
 		"}\n"
 		"\n"
 		"int g() {\n"
@@ -418,7 +418,7 @@ TEST_F(ExtractFunctionTests, twoLinesNoArgumentsNonVoidReturn) {
 			"void f() {\n"
 			"    int x = a();\n"
 			"    b();\n"
-			"    c();\n"
+			"    c(x);\n"
 			"}",
 			{ 2, 3 },
 			"g"
