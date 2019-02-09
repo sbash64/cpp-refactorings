@@ -133,24 +133,26 @@ std::string extractFunction(
 	CodeString::LineBoundaries lineBoundaries,
 	std::string newName
 ) {
-	using namespace std::string_literals;
 	CodeString originalAsCodeString{ original };
 	auto extractionBreaks = originalAsCodeString.findLineBreaks(lineBoundaries);
 	auto extractedBody = originalAsCodeString.betweenIncludingSecondBreak(extractionBreaks);
 	auto extractedFunctionInvokedParameterList = extractedBody.parameterList();
 	auto parentFunctionFirstLine = originalAsCodeString.upToAndIncludingFirstBreak(extractionBreaks);
-	CodeString extractedFunctionParameterList = std::string{ extractedFunctionInvokedParameterList }.empty()
+	CodeString extractedFunctionParameterList = 
+		std::string{ extractedFunctionInvokedParameterList }.empty()
 		? CodeString{}
 		: parentFunctionFirstLine.parameterList();
 
 	auto extractedFunctionReturnType = extractedBody.returnType();
 	CodeString extractedFunctionReturnAssignment{};
 	CodeString extractedFunctionReturnStatement{};
+	using namespace std::string_literals;
 	if (std::string{ extractedFunctionReturnType } != "void") {
 		auto extractedFunctionReturnName = extractedBody.returnName();
 		extractedFunctionReturnAssignment = 
 			extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
-		extractedFunctionReturnStatement = "    return "s + std::string{ extractedFunctionReturnName } +";\n"s;
+		extractedFunctionReturnStatement = 
+			"    return "s + std::string{ extractedFunctionReturnName } +";\n"s;
 	}
 
 	auto extractedFunctionInvocation = 
@@ -395,6 +397,30 @@ TEST_F(ExtractFunctionTests, oneLineNoArgumentsNonVoidReturn) {
 			"    b();\n"
 			"}",
 			{ 2, 2 },
+			"g"
+		)
+	);
+}
+
+TEST_F(ExtractFunctionTests, twoLinesNoArgumentsNonVoidReturn) {
+	assertEqual(
+		"void f() {\n"
+		"    int x = g();\n"
+		"    c();\n"
+		"}\n"
+		"\n"
+		"int g() {\n"
+		"    int x = a();\n"
+		"    b();\n"
+		"    return x;\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    int x = a();\n"
+			"    b();\n"
+			"    c();\n"
+			"}",
+			{ 2, 3 },
 			"g"
 		)
 	);
