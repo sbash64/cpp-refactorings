@@ -85,22 +85,21 @@ bool containsAssignment(std::string content) {
 	return contains(content, "=");
 }
 
-std::string upThroughLastNotOf(std::string content, std::string what) {
+std::string upUntilLastOf(std::string content, std::string what) {
 	return content.substr(0, content.find_last_not_of(what) + 1);
 }
 
 std::string returnedType(std::string content) {
 	auto found = content.find_last_of("=");
 	auto upUntilAssignment = content.substr(0, found);
-	auto upThroughEndOfReturnedName = upThroughLastNotOf(upUntilAssignment, " ");
+	auto upThroughEndOfReturnedName = upUntilLastOf(upUntilAssignment, " ");
 	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
 	auto upUntilReturnedName = upThroughEndOfReturnedName.substr(0, beforeReturnedName + 1);
-	auto upThroughEndOfReturnedType = upThroughLastNotOf(upUntilReturnedName, " ");
+	auto upThroughEndOfReturnedType = upUntilLastOf(upUntilReturnedName, " ");
 	auto beforeReturnedType = upThroughEndOfReturnedType.find_last_of(" ");
-	if (beforeReturnedType == std::string::npos)
-		return upThroughEndOfReturnedType;
-	else
-		return upThroughEndOfReturnedType.substr(beforeReturnedType + 1);
+	return beforeReturnedType == std::string::npos
+		? upThroughEndOfReturnedType
+		: upThroughEndOfReturnedType.substr(beforeReturnedType + 1);
 }
 
 std::string returnType(std::string content) {
@@ -113,12 +112,11 @@ std::string returnType(std::string content) {
 std::string returnName(std::string content) {
 	auto found = content.find_last_of("=");
 	auto upUntilAssignment = content.substr(0, found);
-	auto upThroughEndOfReturnedName = upThroughLastNotOf(upUntilAssignment, " ");
+	auto upThroughEndOfReturnedName = upUntilLastOf(upUntilAssignment, " ");
 	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
-	if (beforeReturnedName == std::string::npos)
-		return upThroughEndOfReturnedName;
-	else
-		return upThroughEndOfReturnedName.substr(beforeReturnedName + 1);
+	return beforeReturnedName == std::string::npos
+		? upThroughEndOfReturnedName
+		: upThroughEndOfReturnedName.substr(beforeReturnedName + 1);
 }
 
 std::string extractFunction(
