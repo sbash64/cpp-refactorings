@@ -69,6 +69,14 @@ std::string secondBreakAndAfter(
 	return content.substr(breaks.second);
 }
 
+std::string parameterList(std::string content) {
+	return 
+		betweenBreaks(
+			content,
+			findParameterListBreaks(content)
+		);
+}
+
 std::string extractFunction(
 	std::string original, 
 	LineBoundaries lineBoundaries,
@@ -76,18 +84,11 @@ std::string extractFunction(
 ) {
 	auto extractionBreaks = findLineBreaks(original, lineBoundaries);
 	auto extractedBody = betweenIncludingSecondBreak(original, extractionBreaks);
-	auto extractedFunctionInvokedParameterList = 
-		betweenBreaks(
-			extractedBody, 
-			findParameterListBreaks(extractedBody)
-		);
+	auto extractedFunctionInvokedParameterList = parameterList(extractedBody);
 	auto parentFunctionFirstLine = upToAndIncludingFirstBreak(original, extractionBreaks);
-	auto extractedFunctionParameterList = extractedFunctionInvokedParameterList.empty() 
+	auto extractedFunctionParameterList = extractedFunctionInvokedParameterList.empty()
 		? ""
-		: betweenBreaks(
-			parentFunctionFirstLine, 
-			findParameterListBreaks(parentFunctionFirstLine)
-		);
+		: parameterList(parentFunctionFirstLine);
 	auto extractedFunctionInvocation = 
 		newName + "(" + extractedFunctionInvokedParameterList + ");";
 	auto remainingParentFunction = secondBreakAndAfter(original, extractionBreaks);
