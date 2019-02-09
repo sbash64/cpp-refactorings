@@ -91,8 +91,7 @@ std::string returnedType(std::string content) {
 	auto upThroughEndOfReturnedName = upThroughLastNotOf(upUntilAssignment, " ");
 	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
 	auto upUntilReturnedName = upThroughEndOfReturnedName.substr(0, beforeReturnedName + 1);
-	auto endOfReturnedType = upUntilReturnedName.find_last_not_of(" ");
-	auto upThroughEndOfReturnedType = upUntilReturnedName.substr(0, endOfReturnedType + 1);
+	auto upThroughEndOfReturnedType = upThroughLastNotOf(upUntilReturnedName, " ");
 	auto beforeReturnedType = upThroughEndOfReturnedType.find_last_of(" ");
 	if (beforeReturnedType == std::string::npos)
 		return upThroughEndOfReturnedType;
