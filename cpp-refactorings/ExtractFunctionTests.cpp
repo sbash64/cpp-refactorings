@@ -104,6 +104,18 @@ std::string returnType(std::string content) {
 		return "void";
 }
 
+std::string returnName(std::string content) {
+	auto found = content.find("=");
+	auto upUntilAssignment = content.substr(0, found);
+	auto endOfReturnedName = upUntilAssignment.find_last_not_of(" ");
+	auto upThroughEndOfReturnedName = upUntilAssignment.substr(0, endOfReturnedName + 1);
+	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
+	if (beforeReturnedName == std::string::npos)
+		return upThroughEndOfReturnedName;
+	else
+		return upThroughEndOfReturnedName.substr(beforeReturnedName + 1);
+}
+
 std::string extractFunction(
 	std::string original, 
 	LineBoundaries lineBoundaries,
@@ -116,19 +128,24 @@ std::string extractFunction(
 	auto extractedFunctionParameterList = extractedFunctionInvokedParameterList.empty()
 		? ""
 		: parameterList(parentFunctionFirstLine);
+
 	auto extractedFunctionReturnType = returnType(extractedBody);
 	std::string extractedFunctionReturnAssignment{};
-	if (extractedFunctionReturnType != "void")
-		extractedFunctionReturnAssignment = extractedFunctionReturnType + " x " + "= ";
+	std::string extractedFunctionReturnStatement{};
+	if (extractedFunctionReturnType != "void") {
+		auto extractedFunctionReturnName = returnName(extractedBody);
+		extractedFunctionReturnAssignment = 
+			extractedFunctionReturnType + " " + extractedFunctionReturnName + " = ";
+		extractedFunctionReturnStatement = "    return " + extractedFunctionReturnName + ";\n";
+	}
+
 	auto extractedFunctionInvocation = 
-		extractedFunctionReturnAssignment + newName + "(" + extractedFunctionInvokedParameterList + ");";
+		extractedFunctionReturnAssignment + newName + 
+		"(" + extractedFunctionInvokedParameterList + ");";
 	auto remainingParentFunction = secondBreakAndAfter(original, extractionBreaks);
 	auto extractedFunctionDeclaration = 
 		extractedFunctionReturnType + " " + newName + 
 		"(" + extractedFunctionParameterList + ")";
-	std::string extractedFunctionReturnStatement{};
-	if (extractedFunctionReturnType != "void")
-		extractedFunctionReturnStatement = "    return x;\n";
 
 	return 
 		parentFunctionFirstLine +
