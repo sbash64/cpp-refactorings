@@ -77,6 +77,33 @@ std::string parameterList(std::string content) {
 		);
 }
 
+bool containsAssignment(std::string content) {
+	return content.find("=") != std::string::npos;
+}
+
+std::string returnedType(std::string content) {
+	auto found = content.find("=");
+	auto upUntilAssignment = content.substr(0, found);
+	auto endOfReturnedName = upUntilAssignment.find_last_not_of(" ");
+	auto upThroughEndOfReturnedName = upUntilAssignment.substr(0, endOfReturnedName + 1);
+	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
+	auto upUntilReturnedName = upThroughEndOfReturnedName.substr(0, beforeReturnedName + 1);
+	auto endOfReturnedType = upUntilReturnedName.find_last_not_of(" ");
+	auto upThroughEndOfReturnedType = upUntilReturnedName.substr(0, endOfReturnedType + 1);
+	auto beforeReturnedType = upThroughEndOfReturnedType.find_last_of(" ");
+	if (beforeReturnedType == std::string::npos)
+		return upThroughEndOfReturnedType;
+	else
+		return upThroughEndOfReturnedType.substr(beforeReturnedType + 1);
+}
+
+std::string returnType(std::string content) {
+	if (containsAssignment(content))
+		return returnedType(content);
+	else
+		return "void";
+}
+
 std::string extractFunction(
 	std::string original, 
 	LineBoundaries lineBoundaries,
@@ -89,11 +116,20 @@ std::string extractFunction(
 	auto extractedFunctionParameterList = extractedFunctionInvokedParameterList.empty()
 		? ""
 		: parameterList(parentFunctionFirstLine);
+	auto extractedFunctionReturnType = returnType(extractedBody);
+	std::string extractedFunctionReturnAssignment{};
+	if (extractedFunctionReturnType != "void")
+		extractedFunctionReturnAssignment = extractedFunctionReturnType + " x " + "= ";
 	auto extractedFunctionInvocation = 
-		newName + "(" + extractedFunctionInvokedParameterList + ");";
+		extractedFunctionReturnAssignment + newName + "(" + extractedFunctionInvokedParameterList + ");";
 	auto remainingParentFunction = secondBreakAndAfter(original, extractionBreaks);
 	auto extractedFunctionDeclaration = 
-		"void " + newName + "(" + extractedFunctionParameterList + ")";
+		extractedFunctionReturnType + " " + newName + 
+		"(" + extractedFunctionParameterList + ")";
+	std::string extractedFunctionReturnStatement{};
+	if (extractedFunctionReturnType != "void")
+		extractedFunctionReturnStatement = "    return x;\n";
+
 	return 
 		parentFunctionFirstLine +
 		"    " + extractedFunctionInvocation +
@@ -101,7 +137,7 @@ std::string extractFunction(
 		"\n"
 		"\n" +
 		extractedFunctionDeclaration + " {\n" +
-		extractedBody +
+		extractedBody + extractedFunctionReturnStatement +
 		"}";
 }
 
@@ -311,7 +347,7 @@ TEST_F(ExtractFunctionTests, oneLineOneFlyOverArgumentVoidReturn) {
 	);
 }
 
-TEST_F(ExtractFunctionTests, DISABLED_oneLineNoArgumentsNonVoidReturn) {
+TEST_F(ExtractFunctionTests, oneLineNoArgumentsNonVoidReturn) {
 	assertEqual(
 		"void f() {\n"
 		"    int x = g();\n"
