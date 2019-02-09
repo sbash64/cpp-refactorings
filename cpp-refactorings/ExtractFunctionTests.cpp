@@ -1,5 +1,6 @@
 #include <string>
 #include <vector>
+#include <set>
 
 class CodeString {
 	std::string content;
@@ -126,7 +127,30 @@ public:
 	}
 
 	operator std::string() const { return content; }
+
+	std::set<std::string> invokedParameters() {
+		std::set<std::string> parameters{};
+		CodeString search{ *this };
+		while (search.contains("(")) {
+			auto breaks = search.findParameterListBreaks();
+			auto parameter = std::string{ search.betweenBreaks(breaks) };
+			if (!parameter.empty())
+				parameters.insert(parameter);
+			search = search.secondBreakAndAfter(breaks);
+		}
+		return parameters;
+	}
 };
+
+std::string commaSeparated(std::set<std::string> items) {
+	std::string result{};
+	for (auto it = items.begin(); it != items.end(); ++it) {
+		result += *it;
+		if (std::next(it) != items.end())
+			result += ", ";
+	}
+	return result;
+}
 
 std::string extractFunction(
 	std::string original, 
@@ -136,7 +160,7 @@ std::string extractFunction(
 	CodeString originalAsCodeString{ original };
 	auto extractionBreaks = originalAsCodeString.findLineBreaks(lineBoundaries);
 	auto extractedBody = originalAsCodeString.betweenIncludingSecondBreak(extractionBreaks);
-	auto extractedFunctionInvokedParameterList = extractedBody.parameterList();
+	auto extractedFunctionInvokedParameterList = commaSeparated(extractedBody.invokedParameters());
 	auto parentFunctionFirstLine = originalAsCodeString.upToAndIncludingFirstBreak(extractionBreaks);
 	CodeString extractedFunctionParameterList = 
 		std::string{ extractedFunctionInvokedParameterList }.empty()
