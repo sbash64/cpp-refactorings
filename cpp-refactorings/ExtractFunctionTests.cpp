@@ -447,3 +447,25 @@ TEST_F(ExtractFunctionTests, oneLineOneArgumentNonVoidReturn) {
 		)
 	);
 }
+
+TEST_F(ExtractFunctionTests, oneLineNoArgumentsBinaryExpressionNonVoidReturn) {
+	assertEqual(
+		"void f() {\n"
+		"    int x = g();\n"
+		"    c(x);\n"
+		"}\n"
+		"\n"
+		"int g() {\n"
+		"    int x = a() + b();\n"
+		"    return x;\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    int x = a() + b();\n"
+			"    c(x);\n"
+			"}",
+			{ 2, 2 },
+			"g"
+		)
+	);
+}
