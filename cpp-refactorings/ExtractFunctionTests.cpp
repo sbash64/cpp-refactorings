@@ -537,3 +537,24 @@ TEST_F(ExtractFunctionTests, oneLineTwoArgumentsBinaryExpressionNonVoidReturn) {
 		)
 	);
 }
+
+TEST_F(ExtractFunctionTests, oneLineOneArgumentOneFlyoverVoidReturn) {
+	assertEqual(
+		"void f(int x, int y) {\n"
+		"    g(x);\n"
+		"    b(y);\n"
+		"}\n"
+		"\n"
+		"void g(int x) {\n"
+		"    a(x);\n"
+		"}",
+		extractFunction(
+			"void f(int x, int y) {\n"
+			"    a(x);\n"
+			"    b(y);\n"
+			"}",
+			{ 2, 2 },
+			"g"
+		)
+	);
+}
