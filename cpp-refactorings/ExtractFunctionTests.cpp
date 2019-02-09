@@ -115,7 +115,7 @@ class ExtractFunctionTests : public ::testing::Test {
 
 };
 
-TEST_F(ExtractFunctionTests, oneLineNoArgumentsVoidReturn) {
+TEST_F(ExtractFunctionTests, oneLineBeginningOfFunctionNoArgumentsVoidReturn) {
 	assertEqual(
 		"void f() {\n"
 		"    g();\n"
@@ -131,6 +131,27 @@ TEST_F(ExtractFunctionTests, oneLineNoArgumentsVoidReturn) {
 			"    b();\n"
 			"}",
 			{ 2, 2 },
+			"g"
+		)
+	);
+}
+
+TEST_F(ExtractFunctionTests, oneLineEndOfFunctionNoArgumentsVoidReturn) {
+	assertEqual(
+		"void f() {\n"
+		"    a();\n"
+		"    g();\n"
+		"}\n"
+		"\n"
+		"void g() {\n"
+		"    b();\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    a();\n"
+			"    b();\n"
+			"}",
+			{ 3, 3 },
 			"g"
 		)
 	);
@@ -261,6 +282,27 @@ TEST_F(ExtractFunctionTests, oneLineOneUnusedArgumentVoidReturn) {
 			"void f(int) {\n"
 			"    a();\n"
 			"    b();\n"
+			"}",
+			{ 2, 2 },
+			"g"
+		)
+	);
+}
+
+TEST_F(ExtractFunctionTests, oneLineOneFlyOverArgumentVoidReturn) {
+	assertEqual(
+		"void f(int x) {\n"
+		"    g();\n"
+		"    b(x);\n"
+		"}\n"
+		"\n"
+		"void g() {\n"
+		"    a();\n"
+		"}",
+		extractFunction(
+			"void f(int x) {\n"
+			"    a();\n"
+			"    b(x);\n"
 			"}",
 			{ 2, 2 },
 			"g"
