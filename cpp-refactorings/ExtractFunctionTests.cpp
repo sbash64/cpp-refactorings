@@ -77,8 +77,12 @@ std::string parameterList(std::string content) {
 		);
 }
 
+bool contains(std::string content, std::string what) {
+	return content.find(what) != std::string::npos;
+}
+
 bool containsAssignment(std::string content) {
-	return content.find("=") != std::string::npos;
+	return contains(content, "=");
 }
 
 std::string upThroughLastNotOf(std::string content, std::string what) {
