@@ -82,7 +82,7 @@ bool containsAssignment(std::string content) {
 }
 
 std::string returnedType(std::string content) {
-	auto found = content.find("=");
+	auto found = content.find_last_of("=");
 	auto upUntilAssignment = content.substr(0, found);
 	auto endOfReturnedName = upUntilAssignment.find_last_not_of(" ");
 	auto upThroughEndOfReturnedName = upUntilAssignment.substr(0, endOfReturnedName + 1);
@@ -105,7 +105,7 @@ std::string returnType(std::string content) {
 }
 
 std::string returnName(std::string content) {
-	auto found = content.find("=");
+	auto found = content.find_last_of("=");
 	auto upUntilAssignment = content.substr(0, found);
 	auto endOfReturnedName = upUntilAssignment.find_last_not_of(" ");
 	auto upThroughEndOfReturnedName = upUntilAssignment.substr(0, endOfReturnedName + 1);
