@@ -81,11 +81,14 @@ bool containsAssignment(std::string content) {
 	return content.find("=") != std::string::npos;
 }
 
+std::string upThroughLastNotOf(std::string content, std::string what) {
+	return content.substr(0, content.find_last_not_of(what) + 1);
+}
+
 std::string returnedType(std::string content) {
 	auto found = content.find_last_of("=");
 	auto upUntilAssignment = content.substr(0, found);
-	auto endOfReturnedName = upUntilAssignment.find_last_not_of(" ");
-	auto upThroughEndOfReturnedName = upUntilAssignment.substr(0, endOfReturnedName + 1);
+	auto upThroughEndOfReturnedName = upThroughLastNotOf(upUntilAssignment, " ");
 	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
 	auto upUntilReturnedName = upThroughEndOfReturnedName.substr(0, beforeReturnedName + 1);
 	auto endOfReturnedType = upUntilReturnedName.find_last_not_of(" ");
@@ -107,8 +110,7 @@ std::string returnType(std::string content) {
 std::string returnName(std::string content) {
 	auto found = content.find_last_of("=");
 	auto upUntilAssignment = content.substr(0, found);
-	auto endOfReturnedName = upUntilAssignment.find_last_not_of(" ");
-	auto upThroughEndOfReturnedName = upUntilAssignment.substr(0, endOfReturnedName + 1);
+	auto upThroughEndOfReturnedName = upThroughLastNotOf(upUntilAssignment, " ");
 	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
 	if (beforeReturnedName == std::string::npos)
 		return upThroughEndOfReturnedName;
