@@ -1,164 +1,175 @@
 #include <string>
 #include <vector>
 
-struct ContentBreaks {
-	std::string::size_type first;
-	std::string::size_type second;
-};
+class CodeString {
+	std::string content;
+public:
+	struct ContentBreaks {
+		std::string::size_type first;
+		std::string::size_type second;
+	};
 
-struct LineBoundaries {
-	int first;
-	int last;
-};
+	struct LineBoundaries {
+		int first;
+		int last;
+	};
 
-std::string::size_type find_nth_element(std::string content, int n, char what) {
-	if (n < 1)
-		return std::string::npos;
-	auto found = content.find(what);
-	for (int i = 0; i < n - 1; ++i)
-		found = content.find(what, found + 1);
-	return found;
-}
+	CodeString(std::string s = {}) : content{ std::move(s) } {}
 
-ContentBreaks findLineBreaks(
-	std::string content, 
-	LineBoundaries boundaries
-) {
-	ContentBreaks breaks{};
-	breaks.first = find_nth_element(content, boundaries.first - 1, '\n');
-	breaks.second = find_nth_element(content, boundaries.last, '\n');
-	return breaks;
-}
+	std::string::size_type find_nth_element(int n, char what) {
+		if (n < 1)
+			return std::string::npos;
+		auto found = content.find(what);
+		for (int i = 0; i < n - 1; ++i)
+			found = content.find(what, found + 1);
+		return found;
+	}
 
-ContentBreaks findParameterListBreaks(std::string line) {
-	ContentBreaks breaks{};
-	breaks.first = line.find('(');
-	breaks.second = line.find(')', breaks.first + 1);
-	return breaks;
-}
+	ContentBreaks findLineBreaks(
+		LineBoundaries boundaries
+	) {
+		ContentBreaks breaks{};
+		breaks.first = find_nth_element(boundaries.first - 1, '\n');
+		breaks.second = find_nth_element(boundaries.last, '\n');
+		return breaks;
+	}
 
-std::string betweenBreaks(std::string content, ContentBreaks breaks) {
-	return content.substr(
-		breaks.first + 1,
-		breaks.second - breaks.first - 1
-	);
-}
+	ContentBreaks findParameterListBreaks() {
+		ContentBreaks breaks{};
+		breaks.first = content.find('(');
+		breaks.second = content.find(')', breaks.first + 1);
+		return breaks;
+	}
 
-std::string betweenIncludingSecondBreak(
-	std::string content, 
-	ContentBreaks breaks
-) {
-	return content.substr(
-		breaks.first + 1,
-		breaks.second - breaks.first
-	);
-}
-
-std::string upToAndIncludingFirstBreak(
-	std::string content,
-	ContentBreaks breaks
-) {
-	return content.substr(0, breaks.first + 1);
-}
-
-
-std::string secondBreakAndAfter(
-	std::string content,
-	ContentBreaks breaks
-) {
-	return content.substr(breaks.second);
-}
-
-std::string parameterList(std::string content) {
-	return 
-		betweenBreaks(
-			content,
-			findParameterListBreaks(content)
+	CodeString betweenBreaks(ContentBreaks breaks) {
+		return content.substr(
+			breaks.first + 1,
+			breaks.second - breaks.first - 1
 		);
-}
+	}
 
-bool contains(std::string content, std::string what) {
-	return content.find(what) != std::string::npos;
-}
+	CodeString betweenIncludingSecondBreak(
+		ContentBreaks breaks
+	) {
+		return content.substr(
+			breaks.first + 1,
+			breaks.second - breaks.first
+		);
+	}
 
-bool containsAssignment(std::string content) {
-	return contains(content, "=");
-}
+	CodeString upToAndIncludingFirstBreak(
+		ContentBreaks breaks
+	) {
+		return content.substr(0, breaks.first + 1);
+	}
 
-std::string upUntilLastOf(std::string content, std::string what) {
-	return content.substr(0, content.find_last_not_of(what) + 1);
-}
 
-std::string returnedType(std::string content) {
-	auto found = content.find_last_of("=");
-	auto upUntilAssignment = content.substr(0, found);
-	auto upThroughEndOfReturnedName = upUntilLastOf(upUntilAssignment, " ");
-	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
-	auto upUntilReturnedName = upThroughEndOfReturnedName.substr(0, beforeReturnedName + 1);
-	auto upThroughEndOfReturnedType = upUntilLastOf(upUntilReturnedName, " ");
-	auto beforeReturnedType = upThroughEndOfReturnedType.find_last_of(" ");
-	return beforeReturnedType == std::string::npos
-		? upThroughEndOfReturnedType
-		: upThroughEndOfReturnedType.substr(beforeReturnedType + 1);
-}
+	CodeString secondBreakAndAfter(
+		ContentBreaks breaks
+	) {
+		return content.substr(breaks.second);
+	}
 
-std::string returnType(std::string content) {
-	if (containsAssignment(content))
-		return returnedType(content);
-	else
-		return "void";
-}
+	CodeString parameterList() {
+		return betweenBreaks(findParameterListBreaks());
+	}
 
-std::string returnName(std::string content) {
-	auto found = content.find_last_of("=");
-	auto upUntilAssignment = content.substr(0, found);
-	auto upThroughEndOfReturnedName = upUntilLastOf(upUntilAssignment, " ");
-	auto beforeReturnedName = upThroughEndOfReturnedName.find_last_of(" ");
-	return beforeReturnedName == std::string::npos
-		? upThroughEndOfReturnedName
-		: upThroughEndOfReturnedName.substr(beforeReturnedName + 1);
-}
+	bool contains(std::string what) {
+		return content.find(what) != std::string::npos;
+	}
+
+	bool containsAssignment() {
+		return contains("=");
+	}
+
+	CodeString upIncludingLastNotOf(std::string what) {
+		return content.substr(0, content.find_last_not_of(what) + 1);
+	}
+
+	CodeString upUntilLastOf(std::string what) {
+		return content.substr(0, content.find_last_of(what));
+	}
+
+	CodeString upThroughLastOf(std::string what) {
+		return content.substr(0, content.find_last_of(what) + 1);
+	}
+
+	CodeString followingLastOf(std::string what) {
+		auto lastOf = content.find_last_of(what);
+		return lastOf == std::string::npos
+			? content
+			: content.substr(lastOf + 1);
+	}
+
+	CodeString returnName() {
+		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ");
+	}
+
+	CodeString returnedType() {
+		return upUntilLastOf("=")
+			.upIncludingLastNotOf(" ")
+			.upThroughLastOf(" ")
+			.upIncludingLastNotOf(" ")
+			.followingLastOf(" ");
+	}
+
+	CodeString returnType() {
+		using namespace std::string_literals;
+		if (containsAssignment())
+			return returnedType();
+		else
+			return "void"s;
+	}
+
+	CodeString operator+(const CodeString &b) const {
+		return content + std::string{ b };
+	}
+
+	operator std::string() const { return content; }
+};
 
 std::string extractFunction(
 	std::string original, 
-	LineBoundaries lineBoundaries,
+	CodeString::LineBoundaries lineBoundaries,
 	std::string newName
 ) {
-	auto extractionBreaks = findLineBreaks(original, lineBoundaries);
-	auto extractedBody = betweenIncludingSecondBreak(original, extractionBreaks);
-	auto extractedFunctionInvokedParameterList = parameterList(extractedBody);
-	auto parentFunctionFirstLine = upToAndIncludingFirstBreak(original, extractionBreaks);
-	auto extractedFunctionParameterList = extractedFunctionInvokedParameterList.empty()
-		? ""
-		: parameterList(parentFunctionFirstLine);
+	using namespace std::string_literals;
+	CodeString originalAsCodeString{ original };
+	auto extractionBreaks = originalAsCodeString.findLineBreaks(lineBoundaries);
+	auto extractedBody = originalAsCodeString.betweenIncludingSecondBreak(extractionBreaks);
+	auto extractedFunctionInvokedParameterList = extractedBody.parameterList();
+	auto parentFunctionFirstLine = originalAsCodeString.upToAndIncludingFirstBreak(extractionBreaks);
+	CodeString extractedFunctionParameterList = std::string{ extractedFunctionInvokedParameterList }.empty()
+		? CodeString{}
+		: parentFunctionFirstLine.parameterList();
 
-	auto extractedFunctionReturnType = returnType(extractedBody);
-	std::string extractedFunctionReturnAssignment{};
-	std::string extractedFunctionReturnStatement{};
-	if (extractedFunctionReturnType != "void") {
-		auto extractedFunctionReturnName = returnName(extractedBody);
+	auto extractedFunctionReturnType = extractedBody.returnType();
+	CodeString extractedFunctionReturnAssignment{};
+	CodeString extractedFunctionReturnStatement{};
+	if (std::string{ extractedFunctionReturnType } != "void") {
+		auto extractedFunctionReturnName = extractedBody.returnName();
 		extractedFunctionReturnAssignment = 
-			extractedFunctionReturnType + " " + extractedFunctionReturnName + " = ";
-		extractedFunctionReturnStatement = "    return " + extractedFunctionReturnName + ";\n";
+			extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
+		extractedFunctionReturnStatement = "    return "s + std::string{ extractedFunctionReturnName } +";\n"s;
 	}
 
 	auto extractedFunctionInvocation = 
 		extractedFunctionReturnAssignment + newName + 
-		"(" + extractedFunctionInvokedParameterList + ");";
-	auto remainingParentFunction = secondBreakAndAfter(original, extractionBreaks);
+		"("s + extractedFunctionInvokedParameterList + ");"s;
+	auto remainingParentFunction = originalAsCodeString.secondBreakAndAfter(extractionBreaks);
 	auto extractedFunctionDeclaration = 
-		extractedFunctionReturnType + " " + newName + 
-		"(" + extractedFunctionParameterList + ")";
+		extractedFunctionReturnType + " "s + newName + 
+		"("s + extractedFunctionParameterList + ")"s;
 
 	return 
 		parentFunctionFirstLine +
-		"    " + extractedFunctionInvocation +
+		"    "s + extractedFunctionInvocation +
 		remainingParentFunction +
-		"\n"
+		"\n"s
 		"\n" +
-		extractedFunctionDeclaration + " {\n" +
+		extractedFunctionDeclaration + " {\n"s +
 		extractedBody + extractedFunctionReturnStatement +
-		"}";
+		"}"s;
 }
 
 #include <gtest/gtest.h>
