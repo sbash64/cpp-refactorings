@@ -119,8 +119,6 @@ public:
 		return content + b.content;
 	}
 
-	operator std::string() const { return content; }
-
 	std::set<std::string> invokedParameters() {
 		std::set<std::string> parameters{};
 		CodeString search{ *this };
@@ -128,7 +126,7 @@ public:
 			auto breaks = search.findParameterListBreaks();
 			auto parameter = search.betweenBreaks(breaks);
 			if (!parameter.content.empty())
-				parameters.insert(parameter);
+				parameters.insert(parameter.content);
 			search = search.secondBreakAndAfter(breaks);
 		}
 		return parameters;
@@ -154,20 +152,20 @@ public:
 			commaSeparated(extractedBody.invokedParameters());
 		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
 		CodeString extractedFunctionParameterList =
-			std::string{ extractedFunctionInvokedParameterList }.empty()
+			extractedFunctionInvokedParameterList.content.empty()
 			? CodeString{}
-		: parentFunctionFirstLine.parameterList();
+			: parentFunctionFirstLine.parameterList();
 
 		auto extractedFunctionReturnType = extractedBody.returnType();
 		CodeString extractedFunctionReturnAssignment{};
 		CodeString extractedFunctionReturnStatement{};
 		using namespace std::string_literals;
-		if (std::string{ extractedFunctionReturnType } != "void") {
+		if (extractedFunctionReturnType.content != "void") {
 			auto extractedFunctionReturnName = extractedBody.returnName();
 			extractedFunctionReturnAssignment =
 				extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
 			extractedFunctionReturnStatement =
-				"    return "s + std::string{ extractedFunctionReturnName } +";\n"s;
+				"    return "s + extractedFunctionReturnName.content + ";\n"s;
 		}
 
 		auto extractedFunctionInvocation =
@@ -179,13 +177,13 @@ public:
 			"("s + extractedFunctionParameterList + ")"s;
 
 		return
-			parentFunctionFirstLine +
-			"    "s + extractedFunctionInvocation +
-			remainingParentFunction +
+			parentFunctionFirstLine.content +
+			"    "s + extractedFunctionInvocation.content +
+			remainingParentFunction.content +
 			"\n"s
 			"\n" +
-			extractedFunctionDeclaration + " {\n"s +
-			extractedBody + extractedFunctionReturnStatement +
+			extractedFunctionDeclaration.content + " {\n"s +
+			extractedBody.content + extractedFunctionReturnStatement.content +
 			"}"s;
 
 	}
