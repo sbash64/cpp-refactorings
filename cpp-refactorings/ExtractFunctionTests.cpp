@@ -1,6 +1,8 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <map>
+#include <algorithm>
 
 class CodeString {
 	std::string content;
@@ -103,6 +105,11 @@ public:
 		return content.substr(content.find_last_of(what) + 1);
 	}
 
+	CodeString followingLastOfEither(std::string this_, std::string that_) {
+		return content.substr(
+			std::max(content.find_last_of(this_), content.find_last_of(that_)) + 1);
+	}
+
 	CodeString returnedType() {
 		return upUntilLastOf("=")
 			.upIncludingLastNotOf(" ")
@@ -119,20 +126,38 @@ public:
 		return content + b.content;
 	}
 
+	std::vector<CodeString> commaDeseparated() {
+		std::vector<CodeString> deseparated;
+		CodeString search{ *this };
+		while (search.contains(",")) {
+			auto found = search.content.find(",");
+			deseparated.push_back(search.content.substr(0, found));
+			search = { search.content.substr(found + 2) };
+		}
+		if (!search.content.empty())
+			deseparated.push_back(search.content);
+		return deseparated;
+	}
+
+	bool containsInvocation() {
+		return contains("(");
+	}
+
 	std::set<std::string> invokedParameters() {
 		std::set<std::string> parameters{};
 		CodeString search{ *this };
-		while (search.contains("(")) {
+		while (search.containsInvocation()) {
 			auto breaks = search.findParameterListBreaks();
-			auto parameter = search.betweenBreaks(breaks);
-			if (!parameter.content.empty())
-				parameters.insert(parameter.content);
+			for (auto p : search.betweenBreaks(breaks).commaDeseparated())
+				if (!p.content.empty())
+					parameters.insert(p.content);
 			search = search.secondBreakAndAfter(breaks);
 		}
 		return parameters;
 	}
 
-	CodeString commaSeparated(std::set<std::string> items) {
+	template<typename container>
+	CodeString commaSeparated(container items) {
 		CodeString result{};
 		for (auto it = items.begin(); it != items.end(); ++it) {
 			result.content += *it;
@@ -140,6 +165,20 @@ public:
 				result.content += ", ";
 		}
 		return result;
+	}
+
+	std::map<std::string, CodeString> parameterTypes(std::set<std::string> parameters) {
+		std::map<std::string, CodeString> result{};
+		for (auto parameter : parameters) {
+			result[parameter] = parameterType(parameter);
+		}
+		return result;
+	}
+
+	CodeString parameterType(std::string parameter) {
+		return upUntilLastOf(parameter)
+			.upIncludingLastNotOf(" ")
+			.followingLastOfEither("(", " ");
 	}
 
 	std::string extractFunction(
@@ -150,11 +189,6 @@ public:
 		auto extractedBody = betweenIncludingSecondBreak(extractionBreaks);
 		auto extractedFunctionInvokedParameterList =
 			commaSeparated(extractedBody.invokedParameters());
-		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
-		auto extractedFunctionParameterList =
-			extractedFunctionInvokedParameterList.content.empty()
-			? CodeString{}
-			: parentFunctionFirstLine.parameterList();
 
 		auto extractedFunctionReturnType = extractedBody.returnType();
 		CodeString extractedFunctionReturnAssignment{};
@@ -171,10 +205,19 @@ public:
 		auto extractedFunctionInvocation =
 			extractedFunctionReturnAssignment + newName +
 			"("s + extractedFunctionInvokedParameterList + ");"s;
-		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
+		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
+		auto extractedFunctionParameters = extractedBody.invokedParameters();
+		auto extractedFunctionParameterTypes = 
+			parentFunctionFirstLine.parameterTypes(extractedFunctionParameters);
+		std::vector<std::string> extractedFunctionParametersWithTypes{};
+		for (auto item : extractedFunctionParameterTypes)
+			extractedFunctionParametersWithTypes.push_back(item.second.content + " " + item.first);
+		auto extractedFunctionParameterList =
+			commaSeparated(extractedFunctionParametersWithTypes);
 		auto extractedFunctionDeclaration =
 			extractedFunctionReturnType + " "s + newName +
 			"("s + extractedFunctionParameterList + ")"s;
+		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
 
 		return
 			parentFunctionFirstLine.content +
@@ -538,7 +581,7 @@ TEST_F(ExtractFunctionTests, oneLineTwoArgumentsBinaryExpressionNonVoidReturn) {
 	);
 }
 
-TEST_F(ExtractFunctionTests, DISABLED_oneLineOneArgumentOneFlyoverVoidReturn) {
+TEST_F(ExtractFunctionTests, oneLineOneArgumentOneFlyoverVoidReturn) {
 	assertEqual(
 		"void f(int x, int y) {\n"
 		"    g(x);\n"
