@@ -134,7 +134,7 @@ public:
 		return parameters;
 	}
 
-	static CodeString commaSeparated(std::set<std::string> items) {
+	CodeString commaSeparated(std::set<std::string> items) {
 		CodeString result{};
 		for (auto it = items.begin(); it != items.end(); ++it) {
 			result.content += *it;
@@ -142,6 +142,52 @@ public:
 				result.content += ", ";
 		}
 		return result;
+	}
+
+	std::string extractFunction(
+		CodeString::LineBoundaries lineBoundaries,
+		std::string newName
+	) {
+		auto extractionBreaks = findLineBreaks(lineBoundaries);
+		auto extractedBody = betweenIncludingSecondBreak(extractionBreaks);
+		auto extractedFunctionInvokedParameterList =
+			commaSeparated(extractedBody.invokedParameters());
+		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
+		CodeString extractedFunctionParameterList =
+			std::string{ extractedFunctionInvokedParameterList }.empty()
+			? CodeString{}
+		: parentFunctionFirstLine.parameterList();
+
+		auto extractedFunctionReturnType = extractedBody.returnType();
+		CodeString extractedFunctionReturnAssignment{};
+		CodeString extractedFunctionReturnStatement{};
+		using namespace std::string_literals;
+		if (std::string{ extractedFunctionReturnType } != "void") {
+			auto extractedFunctionReturnName = extractedBody.returnName();
+			extractedFunctionReturnAssignment =
+				extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
+			extractedFunctionReturnStatement =
+				"    return "s + std::string{ extractedFunctionReturnName } +";\n"s;
+		}
+
+		auto extractedFunctionInvocation =
+			extractedFunctionReturnAssignment + newName +
+			"("s + extractedFunctionInvokedParameterList + ");"s;
+		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
+		auto extractedFunctionDeclaration =
+			extractedFunctionReturnType + " "s + newName +
+			"("s + extractedFunctionParameterList + ")"s;
+
+		return
+			parentFunctionFirstLine +
+			"    "s + extractedFunctionInvocation +
+			remainingParentFunction +
+			"\n"s
+			"\n" +
+			extractedFunctionDeclaration + " {\n"s +
+			extractedBody + extractedFunctionReturnStatement +
+			"}"s;
+
 	}
 };
 
@@ -151,45 +197,7 @@ std::string extractFunction(
 	std::string newName
 ) {
 	CodeString originalAsCodeString{ original };
-	auto extractionBreaks = originalAsCodeString.findLineBreaks(lineBoundaries);
-	auto extractedBody = originalAsCodeString.betweenIncludingSecondBreak(extractionBreaks);
-	auto extractedFunctionInvokedParameterList = 
-		CodeString::commaSeparated(extractedBody.invokedParameters());
-	auto parentFunctionFirstLine = originalAsCodeString.upToAndIncludingFirstBreak(extractionBreaks);
-	CodeString extractedFunctionParameterList = 
-		std::string{ extractedFunctionInvokedParameterList }.empty()
-		? CodeString{}
-		: parentFunctionFirstLine.parameterList();
-
-	auto extractedFunctionReturnType = extractedBody.returnType();
-	CodeString extractedFunctionReturnAssignment{};
-	CodeString extractedFunctionReturnStatement{};
-	using namespace std::string_literals;
-	if (std::string{ extractedFunctionReturnType } != "void") {
-		auto extractedFunctionReturnName = extractedBody.returnName();
-		extractedFunctionReturnAssignment = 
-			extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
-		extractedFunctionReturnStatement = 
-			"    return "s + std::string{ extractedFunctionReturnName } +";\n"s;
-	}
-
-	auto extractedFunctionInvocation = 
-		extractedFunctionReturnAssignment + newName + 
-		"("s + extractedFunctionInvokedParameterList + ");"s;
-	auto remainingParentFunction = originalAsCodeString.secondBreakAndAfter(extractionBreaks);
-	auto extractedFunctionDeclaration = 
-		extractedFunctionReturnType + " "s + newName + 
-		"("s + extractedFunctionParameterList + ")"s;
-
-	return 
-		parentFunctionFirstLine +
-		"    "s + extractedFunctionInvocation +
-		remainingParentFunction +
-		"\n"s
-		"\n" +
-		extractedFunctionDeclaration + " {\n"s +
-		extractedBody + extractedFunctionReturnStatement +
-		"}"s;
+	return originalAsCodeString.extractFunction(lineBoundaries, newName);
 }
 
 #include <gtest/gtest.h>
