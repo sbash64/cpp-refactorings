@@ -151,7 +151,7 @@ public:
 		auto extractedFunctionInvokedParameterList =
 			commaSeparated(extractedBody.invokedParameters());
 		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
-		CodeString extractedFunctionParameterList =
+		auto extractedFunctionParameterList =
 			extractedFunctionInvokedParameterList.content.empty()
 			? CodeString{}
 			: parentFunctionFirstLine.parameterList();
@@ -194,8 +194,8 @@ std::string extractFunction(
 	CodeString::LineBoundaries lineBoundaries,
 	std::string newName
 ) {
-	CodeString originalAsCodeString{ original };
-	return originalAsCodeString.extractFunction(lineBoundaries, newName);
+	CodeString code{ original };
+	return code.extractFunction(lineBoundaries, newName);
 }
 
 #include <gtest/gtest.h>
