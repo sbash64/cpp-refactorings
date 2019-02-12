@@ -19,6 +19,56 @@ public:
 
 	CodeString(std::string s = {}) : content{ std::move(s) } {}
 
+	std::string extractFunction(
+		CodeString::LineBoundaries lineBoundaries,
+		std::string newName
+	) {
+		auto extractionBreaks = findLineBreaks(lineBoundaries);
+		auto extractedBody = betweenIncludingSecondBreak(extractionBreaks);
+		auto extractedFunctionInvokedParameterList =
+			commaSeparated(extractedBody.invokedParameters());
+
+		auto extractedFunctionReturnType = extractedBody.lastAssignmentReturnType();
+		CodeString extractedFunctionReturnAssignment{};
+		CodeString extractedFunctionReturnStatement{};
+		using namespace std::string_literals;
+		if (extractedFunctionReturnType.content != "void") {
+			auto extractedFunctionReturnName = extractedBody.lastAssignedName();
+			extractedFunctionReturnAssignment =
+				extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
+			extractedFunctionReturnStatement =
+				"    return "s + extractedFunctionReturnName.content + ";\n"s;
+		}
+
+		auto extractedFunctionInvocation =
+			extractedFunctionReturnAssignment + newName +
+			"("s + extractedFunctionInvokedParameterList + ");"s;
+		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
+		auto extractedFunctionParameters = extractedBody.invokedParameters();
+		auto extractedFunctionParameterTypes =
+			parentFunctionFirstLine.parameterTypes(extractedFunctionParameters);
+		std::vector<std::string> extractedFunctionParametersWithTypes{};
+		for (auto item : extractedFunctionParameterTypes)
+			extractedFunctionParametersWithTypes.push_back(item.second.content + " " + item.first);
+		auto extractedFunctionParameterList =
+			commaSeparated(extractedFunctionParametersWithTypes);
+		auto extractedFunctionDeclaration =
+			extractedFunctionReturnType + " "s + newName +
+			"("s + extractedFunctionParameterList + ")"s;
+		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
+
+		return
+			parentFunctionFirstLine.content +
+			"    "s + extractedFunctionInvocation.content +
+			remainingParentFunction.content +
+			"\n"s
+			"\n" +
+			extractedFunctionDeclaration.content + " {\n"s +
+			extractedBody.content + extractedFunctionReturnStatement.content +
+			"}"s;
+
+	}
+
 	ContentBreaks findLineBreaks(
 		LineBoundaries boundaries
 	) {
@@ -35,11 +85,11 @@ public:
 		return found;
 	}
 
-	CodeString parameterList() {
-		return betweenBreaks(findParameterListBreaks());
+	CodeString firstParameterList() {
+		return betweenBreaks(findFirstParameterListBreaks());
 	}
 
-	ContentBreaks findParameterListBreaks() {
+	ContentBreaks findFirstParameterListBreaks() {
 		ContentBreaks breaks{};
 		breaks.first = content.find('(');
 		breaks.second = content.find(')', breaks.first + 1);
@@ -75,9 +125,9 @@ public:
 		return content.substr(breaks.second);
 	}
 
-	CodeString returnType() {
+	CodeString lastAssignmentReturnType() {
 		return containsAssignment()
-			? returnedType()
+			? lastAssignmentReturnType_()
 			: CodeString{ "void" };
 	}
 
@@ -89,7 +139,7 @@ public:
 		return content.find(what) != std::string::npos;
 	}
 
-	CodeString returnName() {
+	CodeString lastAssignedName() {
 		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ");
 	}
 
@@ -110,7 +160,7 @@ public:
 			std::max(content.find_last_of(this_), content.find_last_of(that_)) + 1);
 	}
 
-	CodeString returnedType() {
+	CodeString lastAssignmentReturnType_() {
 		return upUntilLastOf("=")
 			.upIncludingLastNotOf(" ")
 			.upThroughLastOf(" ")
@@ -129,10 +179,10 @@ public:
 	std::vector<CodeString> commaDeseparated() {
 		std::vector<CodeString> deseparated;
 		CodeString search{ *this };
-		while (search.contains(",")) {
-			auto found = search.content.find(",");
+		for (auto found = search.content.find(","); found != std::string::npos; ) {
 			deseparated.push_back(search.content.substr(0, found));
 			search = { search.content.substr(found + 2) };
+			found = search.content.find(",");
 		}
 		if (!search.content.empty())
 			deseparated.push_back(search.content);
@@ -147,7 +197,7 @@ public:
 		std::set<std::string> parameters{};
 		CodeString search{ *this };
 		while (search.containsInvocation()) {
-			auto breaks = search.findParameterListBreaks();
+			auto breaks = search.findFirstParameterListBreaks();
 			for (auto p : search.betweenBreaks(breaks).commaDeseparated())
 				if (!p.content.empty())
 					parameters.insert(p.content);
@@ -168,67 +218,16 @@ public:
 	}
 
 	std::map<std::string, CodeString> parameterTypes(std::set<std::string> parameters) {
-		std::map<std::string, CodeString> result{};
-		for (auto parameter : parameters) {
-			result[parameter] = parameterType(parameter);
-		}
-		return result;
+		std::map<std::string, CodeString> types{};
+		for (auto parameter : parameters)
+			types[parameter] = parameterType(parameter);
+		return types;
 	}
 
 	CodeString parameterType(std::string parameter) {
 		return upUntilLastOf(parameter)
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
-	}
-
-	std::string extractFunction(
-		CodeString::LineBoundaries lineBoundaries,
-		std::string newName
-	) {
-		auto extractionBreaks = findLineBreaks(lineBoundaries);
-		auto extractedBody = betweenIncludingSecondBreak(extractionBreaks);
-		auto extractedFunctionInvokedParameterList =
-			commaSeparated(extractedBody.invokedParameters());
-
-		auto extractedFunctionReturnType = extractedBody.returnType();
-		CodeString extractedFunctionReturnAssignment{};
-		CodeString extractedFunctionReturnStatement{};
-		using namespace std::string_literals;
-		if (extractedFunctionReturnType.content != "void") {
-			auto extractedFunctionReturnName = extractedBody.returnName();
-			extractedFunctionReturnAssignment =
-				extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
-			extractedFunctionReturnStatement =
-				"    return "s + extractedFunctionReturnName.content + ";\n"s;
-		}
-
-		auto extractedFunctionInvocation =
-			extractedFunctionReturnAssignment + newName +
-			"("s + extractedFunctionInvokedParameterList + ");"s;
-		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
-		auto extractedFunctionParameters = extractedBody.invokedParameters();
-		auto extractedFunctionParameterTypes = 
-			parentFunctionFirstLine.parameterTypes(extractedFunctionParameters);
-		std::vector<std::string> extractedFunctionParametersWithTypes{};
-		for (auto item : extractedFunctionParameterTypes)
-			extractedFunctionParametersWithTypes.push_back(item.second.content + " " + item.first);
-		auto extractedFunctionParameterList =
-			commaSeparated(extractedFunctionParametersWithTypes);
-		auto extractedFunctionDeclaration =
-			extractedFunctionReturnType + " "s + newName +
-			"("s + extractedFunctionParameterList + ")"s;
-		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
-
-		return
-			parentFunctionFirstLine.content +
-			"    "s + extractedFunctionInvocation.content +
-			remainingParentFunction.content +
-			"\n"s
-			"\n" +
-			extractedFunctionDeclaration.content + " {\n"s +
-			extractedBody.content + extractedFunctionReturnStatement.content +
-			"}"s;
-
 	}
 };
 
