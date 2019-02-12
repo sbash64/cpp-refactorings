@@ -43,22 +43,17 @@ public:
 		auto extractedFunctionInvocation =
 			extractedFunctionReturnAssignment + newName +
 			"("s + extractedFunctionInvokedParameterList + ");"s;
-		auto parentFunctionFirstLine = upToAndIncludingFirstBreak(extractionBreaks);
+		auto parentFunctionBeginning = upToAndIncludingFirstBreak(extractionBreaks);
 		auto extractedFunctionParameters = extractedBody.invokedParameters();
-		auto extractedFunctionParameterTypes =
-			parentFunctionFirstLine.parameterTypes(extractedFunctionParameters);
-		std::vector<std::string> extractedFunctionParametersWithTypes{};
-		for (auto item : extractedFunctionParameterTypes)
-			extractedFunctionParametersWithTypes.push_back(item.second.content + " " + item.first);
 		auto extractedFunctionParameterList =
-			commaSeparated(extractedFunctionParametersWithTypes);
+			commaSeparated(parentFunctionBeginning.parametersWithTypes(extractedFunctionParameters));
 		auto extractedFunctionDeclaration =
 			extractedFunctionReturnType + " "s + newName +
 			"("s + extractedFunctionParameterList + ")"s;
 		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
 
 		return
-			parentFunctionFirstLine.content +
+			parentFunctionBeginning.content +
 			"    "s + extractedFunctionInvocation.content +
 			remainingParentFunction.content +
 			"\n"s
@@ -67,6 +62,13 @@ public:
 			extractedBody.content + extractedFunctionReturnStatement.content +
 			"}"s;
 
+	}
+
+	std::vector<std::string> parametersWithTypes(std::set<std::string> parameters) {
+		std::vector<std::string> withTypes{};
+		for (auto item : parameterTypes(parameters))
+			withTypes.push_back(item.second.content + " " + item.first);
+		return withTypes;
 	}
 
 	ContentBreaks findLineBreaks(
