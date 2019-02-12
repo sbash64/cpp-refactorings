@@ -25,9 +25,6 @@ public:
 	) {
 		auto extractionBreaks = findLineBreaks(lineBoundaries);
 		auto extractedBody = betweenIncludingSecondBreak(extractionBreaks);
-		auto extractedFunctionInvokedParameterList =
-			commaSeparated(extractedBody.invokedParameters());
-
 		auto extractedFunctionReturnType = extractedBody.lastAssignmentReturnType();
 		CodeString extractedFunctionReturnAssignment{};
 		CodeString extractedFunctionReturnStatement{};
@@ -42,11 +39,10 @@ public:
 
 		auto extractedFunctionInvocation =
 			extractedFunctionReturnAssignment + newName +
-			"("s + extractedFunctionInvokedParameterList + ");"s;
+			"("s + commaSeparated(extractedBody.invokedParameters()) + ");"s;
 		auto parentFunctionBeginning = upToAndIncludingFirstBreak(extractionBreaks);
-		auto extractedFunctionParameters = extractedBody.invokedParameters();
 		auto extractedFunctionParameterList =
-			commaSeparated(parentFunctionBeginning.parametersWithTypes(extractedFunctionParameters));
+			commaSeparated(parentFunctionBeginning.parametersWithTypes(extractedBody.invokedParameters()));
 		auto extractedFunctionDeclaration =
 			extractedFunctionReturnType + " "s + newName +
 			"("s + extractedFunctionParameterList + ")"s;
@@ -62,13 +58,6 @@ public:
 			extractedBody.content + extractedFunctionReturnStatement.content +
 			"}"s;
 
-	}
-
-	std::vector<std::string> parametersWithTypes(std::set<std::string> parameters) {
-		std::vector<std::string> withTypes{};
-		for (auto item : parameterTypes(parameters))
-			withTypes.push_back(item.second.content + " " + item.first);
-		return withTypes;
 	}
 
 	ContentBreaks findLineBreaks(
@@ -218,6 +207,13 @@ public:
 				result.content += ", ";
 		}
 		return result;
+	}
+
+	std::vector<std::string> parametersWithTypes(std::set<std::string> parameters) {
+		std::vector<std::string> withTypes{};
+		for (auto item : parameterTypes(parameters))
+			withTypes.push_back(item.second.content + " " + item.first);
+		return withTypes;
 	}
 
 	std::map<std::string, CodeString> parameterTypes(std::set<std::string> parameters) {
