@@ -179,10 +179,13 @@ public:
 	std::vector<CodeString> splitParameterList() {
 		std::vector<CodeString> deseparated;
 		CodeString search{ *this };
-		for (auto found = search.content.find(","); found != std::string::npos; ) {
+		for (
+			auto found = search.content.find(","); 
+			found != std::string::npos; 
+			found = search.content.find(",")
+		) {
 			deseparated.push_back(search.content.substr(0, found));
 			search = { search.content.substr(found + 2) };
-			found = search.content.find(",");
 		}
 		if (!search.content.empty())
 			deseparated.push_back(search.content);
