@@ -139,8 +139,12 @@ public:
 		return content.find(what) != std::string::npos;
 	}
 
-	CodeString lastAssignedName() {
-		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ");
+	CodeString lastAssignmentReturnType_() {
+		return upUntilLastOf("=")
+			.upIncludingLastNotOf(" ")
+			.upThroughLastOf(" ")
+			.upIncludingLastNotOf(" ")
+			.followingLastOf(" ");
 	}
 
 	CodeString upUntilLastOf(std::string what) {
@@ -160,23 +164,19 @@ public:
 			std::max(content.find_last_of(this_), content.find_last_of(that_)) + 1);
 	}
 
-	CodeString lastAssignmentReturnType_() {
-		return upUntilLastOf("=")
-			.upIncludingLastNotOf(" ")
-			.upThroughLastOf(" ")
-			.upIncludingLastNotOf(" ")
-			.followingLastOf(" ");
-	}
-
 	CodeString upThroughLastOf(std::string what) {
 		return content.substr(0, content.find_last_of(what) + 1);
+	}
+
+	CodeString lastAssignedName() {
+		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ");
 	}
 
 	CodeString operator+(const CodeString &b) const {
 		return content + b.content;
 	}
 
-	std::vector<CodeString> commaDeseparated() {
+	std::vector<CodeString> splitParameterList() {
 		std::vector<CodeString> deseparated;
 		CodeString search{ *this };
 		for (auto found = search.content.find(","); found != std::string::npos; ) {
@@ -189,18 +189,16 @@ public:
 		return deseparated;
 	}
 
-	bool containsInvocation() {
-		return contains("(");
-	}
-
 	std::set<std::string> invokedParameters() {
 		std::set<std::string> parameters{};
 		CodeString search{ *this };
-		while (search.containsInvocation()) {
-			auto breaks = search.findFirstParameterListBreaks();
-			for (auto p : search.betweenBreaks(breaks).commaDeseparated())
-				if (!p.content.empty())
-					parameters.insert(p.content);
+		for (
+			auto breaks = search.findFirstParameterListBreaks(); 
+			breaks.first != std::string::npos; 
+			breaks = search.findFirstParameterListBreaks()
+		) {
+			for (auto p : search.betweenBreaks(breaks).splitParameterList())
+				parameters.insert(p.content);
 			search = search.secondBreakAndAfter(breaks);
 		}
 		return parameters;
