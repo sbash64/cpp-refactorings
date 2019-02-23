@@ -638,3 +638,27 @@ TEST_F(ExtractFunctionTests, twoLinesNoArgumentsSecondVariableReturned) {
 		)
 	);
 }
+
+TEST_F(ExtractFunctionTests, twoLinesOneArgumentSecondVariableReturned) {
+	assertEqual(
+		"void f(int z) {\n"
+		"    int y = g(z);\n"
+		"    c(y);\n"
+		"}\n"
+		"\n"
+		"int g(int z) {\n"
+		"    int x = a(z);\n"
+		"    int y = b(x);\n"
+		"    return y;\n"
+		"}",
+		extractFunction(
+			"void f(int z) {\n"
+			"    int x = a(z);\n"
+			"    int y = b(x);\n"
+			"    c(y);\n"
+			"}",
+			{ 2, 3 },
+			"g"
+		)
+	);
+}
