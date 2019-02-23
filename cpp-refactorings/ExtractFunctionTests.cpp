@@ -39,12 +39,12 @@ public:
 
 		auto extractedFunctionInvocation =
 			extractedFunctionReturnAssignment + newName +
-			"("s + commaSeparated(extractedBody.invokedParameters()) + ");"s;
+			"("s + commaSeparated(extractedBody.undeclaredIdentifiers()) + ");"s;
 		auto parentFunctionBeginning = upToAndIncludingBeginning(extractionBounds);
 		auto extractedFunctionParameterList =
 			commaSeparated(
 				parentFunctionBeginning.parametersWithTypes(
-					extractedBody.invokedParameters()
+					extractedBody.undeclaredIdentifiers()
 				)
 			);
 		auto extractedFunctionDeclaration =
@@ -139,6 +139,10 @@ public:
 		return content.substr(0, content.find_last_of(what));
 	}
 
+	CodeString upUntilFirstOf(std::string what) {
+		return content.substr(0, content.find_first_of(what));
+	}
+	
 	CodeString upIncludingLastNotOf(std::string what) {
 		return content.substr(0, content.find_last_not_of(what) + 1);
 	}
@@ -195,6 +199,21 @@ public:
 		return parameters;
 	}
 
+	std::set<std::string> undeclaredIdentifiers() {
+		auto parameters = invokedParameters();
+		std::set<std::string> undeclared_{};
+		CodeString search{ *this };
+		for (auto p : parameters)
+			if (
+				search.upUntilFirstOf(p)
+				.upIncludingLastNotOf(" ")
+				.followingLastOf(" ")
+				.contains("(")
+			)
+				undeclared_.insert(p);
+		return undeclared_;
+	}
+	
 	template<typename container>
 	CodeString commaSeparated(container items) {
 		CodeString result{};
@@ -592,6 +611,30 @@ TEST_F(ExtractFunctionTests, oneLineOneArgumentOneFlyoverVoidReturn) {
 			"    b(y);\n"
 			"}",
 			{ 2, 2 },
+			"g"
+		)
+	);
+}
+
+TEST_F(ExtractFunctionTests, twoLinesNoArgumentsSecondVariableReturned) {
+	assertEqual(
+		"void f() {\n"
+		"    int y = g();\n"
+		"    c(y);\n"
+		"}\n"
+		"\n"
+		"int g() {\n"
+		"    int x = a();\n"
+		"    int y = b(x);\n"
+		"    return y;\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    int x = a();\n"
+			"    int y = b(x);\n"
+			"    c(y);\n"
+			"}",
+			{ 2, 3 },
 			"g"
 		)
 	);
