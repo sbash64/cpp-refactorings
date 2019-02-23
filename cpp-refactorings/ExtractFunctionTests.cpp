@@ -7,9 +7,9 @@
 class CodeString {
 	std::string content;
 public:
-	struct ContentBreaks {
-		std::string::size_type first;
-		std::string::size_type second;
+	struct ContentBounds {
+		std::string::size_type beginning;
+		std::string::size_type end;
 	};
 
 	struct LineBoundaries {
@@ -23,8 +23,8 @@ public:
 		CodeString::LineBoundaries lineBoundaries,
 		std::string newName
 	) {
-		auto extractionBreaks = findLineBreaks(lineBoundaries);
-		auto extractedBody = betweenIncludingSecondBreak(extractionBreaks);
+		auto extractionBounds = findLineBounds(lineBoundaries);
+		auto extractedBody = betweenIncludingEnd(extractionBounds);
 		auto extractedFunctionReturnType = extractedBody.lastAssignmentReturnType();
 		CodeString extractedFunctionReturnAssignment{};
 		CodeString extractedFunctionReturnStatement{};
@@ -40,13 +40,17 @@ public:
 		auto extractedFunctionInvocation =
 			extractedFunctionReturnAssignment + newName +
 			"("s + commaSeparated(extractedBody.invokedParameters()) + ");"s;
-		auto parentFunctionBeginning = upToAndIncludingFirstBreak(extractionBreaks);
+		auto parentFunctionBeginning = upToAndIncludingBeginning(extractionBounds);
 		auto extractedFunctionParameterList =
-			commaSeparated(parentFunctionBeginning.parametersWithTypes(extractedBody.invokedParameters()));
+			commaSeparated(
+				parentFunctionBeginning.parametersWithTypes(
+					extractedBody.invokedParameters()
+				)
+			);
 		auto extractedFunctionDeclaration =
 			extractedFunctionReturnType + " "s + newName +
 			"("s + extractedFunctionParameterList + ")"s;
-		auto remainingParentFunction = secondBreakAndAfter(extractionBreaks);
+		auto remainingParentFunction = endAndAfter(extractionBounds);
 
 		return
 			parentFunctionBeginning.content +
@@ -60,13 +64,13 @@ public:
 
 	}
 
-	ContentBreaks findLineBreaks(
+	ContentBounds findLineBounds(
 		LineBoundaries boundaries
 	) {
-		ContentBreaks breaks{};
-		breaks.first = find_nth_element(boundaries.first - 1, '\n');
-		breaks.second = find_nth_element(boundaries.last, '\n');
-		return breaks;
+		ContentBounds bounds{};
+		bounds.beginning = find_nth_element(boundaries.first - 1, '\n');
+		bounds.end = find_nth_element(boundaries.last, '\n');
+		return bounds;
 	}
 
 	std::string::size_type find_nth_element(int n, char what) {
@@ -77,43 +81,36 @@ public:
 	}
 
 	CodeString firstParameterList() {
-		return betweenBreaks(findFirstParameterListBreaks());
+		return betweenBounds(findFirstParameterListBounds());
 	}
 
-	ContentBreaks findFirstParameterListBreaks() {
-		ContentBreaks breaks{};
-		breaks.first = content.find('(');
-		breaks.second = content.find(')', breaks.first + 1);
-		return breaks;
+	ContentBounds findFirstParameterListBounds() {
+		ContentBounds bounds{};
+		bounds.beginning = content.find('(');
+		bounds.end = content.find(')', bounds.beginning + 1);
+		return bounds;
 	}
 
-	CodeString betweenBreaks(ContentBreaks breaks) {
+	CodeString betweenBounds(ContentBounds bounds) {
 		return content.substr(
-			breaks.first + 1,
-			breaks.second - breaks.first - 1
+			bounds.beginning + 1,
+			bounds.end - bounds.beginning - 1
 		);
 	}
 
-	CodeString betweenIncludingSecondBreak(
-		ContentBreaks breaks
-	) {
+	CodeString betweenIncludingEnd(ContentBounds bounds) {
 		return content.substr(
-			breaks.first + 1,
-			breaks.second - breaks.first
+			bounds.beginning + 1,
+			bounds.end - bounds.beginning
 		);
 	}
 
-	CodeString upToAndIncludingFirstBreak(
-		ContentBreaks breaks
-	) {
-		return content.substr(0, breaks.first + 1);
+	CodeString upToAndIncludingBeginning(ContentBounds bounds) {
+		return content.substr(0, bounds.beginning + 1);
 	}
 
-
-	CodeString secondBreakAndAfter(
-		ContentBreaks breaks
-	) {
-		return content.substr(breaks.second);
+	CodeString endAndAfter(ContentBounds bounds) {
+		return content.substr(bounds.end);
 	}
 
 	CodeString lastAssignmentReturnType() {
@@ -168,32 +165,32 @@ public:
 	}
 
 	std::vector<CodeString> splitParameterList() {
-		std::vector<CodeString> deseparated;
+		std::vector<CodeString> split;
 		CodeString search{ *this };
 		for (
 			auto found = search.content.find(","); 
 			found != std::string::npos; 
 			found = search.content.find(",")
 		) {
-			deseparated.push_back(search.content.substr(0, found));
+			split.push_back(search.content.substr(0, found));
 			search = { search.content.substr(found + 2) };
 		}
 		if (!search.content.empty())
-			deseparated.push_back(search.content);
-		return deseparated;
+			split.push_back(search.content);
+		return split;
 	}
 
 	std::set<std::string> invokedParameters() {
 		std::set<std::string> parameters{};
 		CodeString search{ *this };
 		for (
-			auto breaks = search.findFirstParameterListBreaks(); 
-			breaks.first != std::string::npos; 
-			breaks = search.findFirstParameterListBreaks()
+			auto bounds = search.findFirstParameterListBounds(); 
+			bounds.beginning != std::string::npos; 
+			bounds = search.findFirstParameterListBounds()
 		) {
-			for (auto p : search.betweenBreaks(breaks).splitParameterList())
+			for (auto p : search.betweenBounds(bounds).splitParameterList())
 				parameters.insert(p.content);
-			search = search.secondBreakAndAfter(breaks);
+			search = search.endAndAfter(bounds);
 		}
 		return parameters;
 	}
