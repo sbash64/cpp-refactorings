@@ -200,10 +200,9 @@ public:
 	}
 
 	std::set<std::string> undeclaredIdentifiers() {
-		auto parameters = invokedParameters();
 		std::set<std::string> undeclared_{};
 		CodeString search{ *this };
-		for (auto p : parameters)
+		for (auto p : invokedParameters())
 			if (
 				search.upUntilFirstOf(p)
 				.upIncludingLastNotOf(" ")
