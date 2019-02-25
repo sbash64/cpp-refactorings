@@ -125,26 +125,8 @@ public:
 		return content.substr(bounds.end);
 	}
 
-	CodeString lastAssignmentReturnType() {
-		return containsAssignment()
-			? lastAssignmentReturnType_()
-			: CodeString{ "void" };
-	}
-
-	bool containsAssignment() {
-		return contains("=");
-	}
-
 	bool contains(std::string what) {
 		return content.find(what) != std::string::npos;
-	}
-
-	CodeString lastAssignmentReturnType_() {
-		return upUntilLastOf("=")
-			.upIncludingLastNotOf(" ")
-			.upThroughLastOf(" ")
-			.upIncludingLastNotOf(" ")
-			.followingLastOf(" ");
 	}
 
 	CodeString upUntilLastOf(std::string what) {
