@@ -5,7 +5,7 @@
 #include <algorithm>
 #include <iterator>
 
-class CodeString {
+class Code {
 	std::string content;
 public:
 	struct ContentBounds {
@@ -13,7 +13,7 @@ public:
 		std::string::size_type end;
 	};
 
-	struct LineBoundaries {
+	struct ExtractedLines {
 		int first;
 		int last;
 	};
@@ -38,27 +38,28 @@ public:
 		}
 	};
 
-	CodeString(std::string s = {}) : content{ std::move(s) } {}
+	Code(std::string s = {}) : content{ std::move(s) } {}
 
 	std::string extractFunction(
-		LineBoundaries lineBoundaries,
+		ExtractedLines lineBoundaries,
 		std::string newName
 	) {
-		auto extractionBounds = findLineBounds(lineBoundaries);
-		auto parentFunctionBeginning = upToAndIncludingBeginning(extractionBounds);
+		auto extractionBounds = lineBounds(lineBoundaries);
+		auto parentFunctionBeginning = upToIncludingBeginning(extractionBounds);
 		auto extractedBody = betweenIncludingEnd(extractionBounds);
-		auto remainingParentFunction = endAndAfter(extractionBounds);
-		auto undeclaredFollowingExtraction = remainingParentFunction.undeclaredIdentifiers();
+		auto remainingParentFunction = endAndFollowing(extractionBounds);
+		auto undeclaredFollowingExtraction =
+			Set{ remainingParentFunction.undeclaredIdentifiers() };
 		auto parentFunctionParameters = 
 			parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
 		auto neededReturnedFromExtracted = 
-			Set{ undeclaredFollowingExtraction }.excluding(parentFunctionParameters);
+			undeclaredFollowingExtraction.excluding(parentFunctionParameters);
 		using namespace std::string_literals;
-		CodeString extractedFunctionReturnType = neededReturnedFromExtracted.size()
+		Code extractedFunctionReturnType = neededReturnedFromExtracted.size()
 			? extractedBody.parameterType(*neededReturnedFromExtracted.begin())
 			: "void"s;
-		CodeString extractedFunctionReturnAssignment{};
-		CodeString extractedFunctionReturnStatement{};
+		Code extractedFunctionReturnAssignment{};
+		Code extractedFunctionReturnStatement{};
 		if (extractedFunctionReturnType.content != "void") {
 			auto extractedFunctionReturnName = extractedBody.lastAssignedName();
 			extractedFunctionReturnAssignment =
@@ -92,8 +93,8 @@ public:
 
 	}
 
-	ContentBounds findLineBounds(
-		LineBoundaries boundaries
+	ContentBounds lineBounds(
+		ExtractedLines boundaries
 	) {
 		ContentBounds bounds{};
 		bounds.beginning = find_nth_element(boundaries.first - 1U, '\n');
@@ -108,79 +109,79 @@ public:
 		return found;
 	}
 
-	CodeString firstParameterList() {
-		return betweenBounds(findFirstParameterListBounds());
+	Code firstParameterList() {
+		return between(firstParameterListBounds());
 	}
 
-	ContentBounds findFirstParameterListBounds() {
+	ContentBounds firstParameterListBounds() {
 		ContentBounds bounds{};
 		bounds.beginning = content.find('(');
 		bounds.end = content.find(')', bounds.beginning + 1U);
 		return bounds;
 	}
 
-	CodeString betweenBounds(ContentBounds bounds) {
+	Code between(ContentBounds bounds) {
 		return content.substr(
 			bounds.beginning + 1U,
 			bounds.end - bounds.beginning - 1U
 		);
 	}
 
-	CodeString betweenIncludingEnd(ContentBounds bounds) {
+	Code betweenIncludingEnd(ContentBounds bounds) {
 		return content.substr(
 			bounds.beginning + 1U,
 			bounds.end - bounds.beginning
 		);
 	}
 
-	CodeString upToAndIncludingBeginning(ContentBounds bounds) {
+	Code upToIncludingBeginning(ContentBounds bounds) {
 		return content.substr(0, bounds.beginning + 1U);
 	}
 
-	CodeString endAndAfter(ContentBounds bounds) {
+	Code endAndFollowing(ContentBounds bounds) {
 		return content.substr(bounds.end);
 	}
 
-	bool contains(std::string what) {
-		return content.find(what) != std::string::npos;
+	Code upUntilLastOf(std::string what) {
+		return content.substr(0, content.find_last_of(std::move(what)));
 	}
 
-	CodeString upUntilLastOf(std::string what) {
-		return content.substr(0, content.find_last_of(what));
-	}
-
-	CodeString upUntilFirstOf(std::string what) {
-		return content.substr(0, content.find_first_of(what));
+	Code upUntilFirstOf(std::string what) {
+		return content.substr(0, content.find_first_of(std::move(what)));
 	}
 	
-	CodeString upIncludingLastNotOf(std::string what) {
-		return content.substr(0, content.find_last_not_of(what) + 1U);
+	Code upIncludingLastNotOf(std::string what) {
+		return content.substr(0, content.find_last_not_of(std::move(what)) + 1U);
 	}
 
-	CodeString followingLastOf(std::string what) {
-		return content.substr(content.find_last_of(what) + 1U);
+	Code followingLastOf(std::string what) {
+		return content.substr(content.find_last_of(std::move(what)) + 1U);
 	}
 
-	CodeString followingLastOfEither(std::string this_, std::string that_) {
+	Code followingLastOfEither(std::string this_, std::string that_) {
 		return content.substr(
-			std::max(content.find_last_of(this_) + 1U, content.find_last_of(that_) + 1U));
+			std::max(
+				content.find_last_of(std::move(this_)) + 1U, 
+				content.find_last_of(std::move(that_)) + 1U
+			)
+		);
 	}
 
-	CodeString upThroughLastOf(std::string what) {
-		return content.substr(0, content.find_last_of(what) + 1U);
+	Code upThroughLastOf(std::string what) {
+		return content.substr(0, content.find_last_of(std::move(what)) + 1U);
 	}
 
-	CodeString lastAssignedName() {
+	Code lastAssignedName() {
 		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ");
 	}
 
-	CodeString operator+(const CodeString &b) const {
+	Code operator+(const Code &b) const {
 		return content + b.content;
 	}
 
 	std::vector<std::string> commaSplit() {
 		std::vector<std::string> split;
-		CodeString search{ *this };
+		auto search{ *this };
 		for (
 			auto found = search.content.find(","); 
 			found != std::string::npos; 
@@ -196,22 +197,22 @@ public:
 
 	std::set<std::string> invokedParameters() {
 		std::set<std::string> parameters{};
-		CodeString search{ *this };
+		auto search{ *this };
 		for (
-			auto bounds = search.findFirstParameterListBounds(); 
+			auto bounds = search.firstParameterListBounds(); 
 			bounds.beginning != std::string::npos; 
-			bounds = search.findFirstParameterListBounds()
+			bounds = search.firstParameterListBounds()
 		) {
-			for (auto p : search.betweenBounds(bounds).commaSplit())
+			for (auto p : search.between(bounds).commaSplit())
 				parameters.insert(p);
-			search = search.endAndAfter(bounds);
+			search = search.endAndFollowing(bounds);
 		}
 		return parameters;
 	}
 
 	std::set<std::string> undeclaredIdentifiers() {
 		std::set<std::string> undeclared_{};
-		CodeString search{ *this };
+		auto search{ *this };
 		for (auto p : invokedParameters())
 			if (
 				search.upUntilFirstOf(p)
@@ -222,10 +223,14 @@ public:
 				undeclared_.insert(p);
 		return undeclared_;
 	}
+
+	bool contains(std::string what) {
+		return content.find(std::move(what)) != std::string::npos;
+	}
 	
 	template<typename container>
-	CodeString commaSeparated(container items) {
-		CodeString result{};
+	Code commaSeparated(container items) {
+		Code result{};
 		for (auto it = items.begin(); it != items.end(); ++it) {
 			result.content += *it;
 			if (std::next(it) != items.end())
@@ -241,14 +246,14 @@ public:
 		return withTypes;
 	}
 
-	std::map<std::string, CodeString> parameterTypes(std::set<std::string> parameters) {
-		std::map<std::string, CodeString> types{};
+	std::map<std::string, Code> parameterTypes(std::set<std::string> parameters) {
+		std::map<std::string, Code> types{};
 		for (auto parameter : parameters)
 			types[parameter] = parameterType(parameter);
 		return types;
 	}
 
-	CodeString parameterType(std::string parameter) {
+	Code parameterType(std::string parameter) {
 		return upUntilLastOf(parameter)
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
@@ -257,17 +262,17 @@ public:
 	std::vector<std::string> parametersWithoutTypes() {
 		std::vector<std::string> withoutTypes{};
 		for (auto s : commaSplit())
-			withoutTypes.push_back(CodeString{ s }.followingLastOf(" ").content);
+			withoutTypes.push_back(Code{ s }.followingLastOf(" ").content);
 		return withoutTypes;
 	}
 };
 
 std::string extractFunction(
 	std::string original, 
-	CodeString::LineBoundaries lineBoundaries,
+	Code::ExtractedLines lineBoundaries,
 	std::string newName
 ) {
-	CodeString code{ original };
+	Code code{ original };
 	return code.extractFunction(lineBoundaries, newName);
 }
 
