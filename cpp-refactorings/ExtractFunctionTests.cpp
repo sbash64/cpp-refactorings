@@ -163,7 +163,7 @@ public:
 		return content + b.content;
 	}
 
-	std::vector<std::string> splitParameterList() {
+	std::vector<std::string> commaSplit() {
 		std::vector<std::string> split;
 		CodeString search{ *this };
 		for (
@@ -187,7 +187,7 @@ public:
 			bounds.beginning != std::string::npos; 
 			bounds = search.findFirstParameterListBounds()
 		) {
-			for (auto p : search.betweenBounds(bounds).splitParameterList())
+			for (auto p : search.betweenBounds(bounds).commaSplit())
 				parameters.insert(p);
 			search = search.endAndAfter(bounds);
 		}
@@ -241,7 +241,7 @@ public:
 
 	std::vector<std::string> parametersWithoutTypes() {
 		std::vector<std::string> withoutTypes{};
-		for (auto s : splitParameterList())
+		for (auto s : commaSplit())
 			withoutTypes.push_back(CodeString{ s }.followingLastOf(" ").content);
 		return withoutTypes;
 	}
