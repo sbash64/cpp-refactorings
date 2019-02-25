@@ -48,14 +48,14 @@ public:
 		auto remainingParentFunction = endAndFollowing(extractionBounds);
 		auto parentFunctionBeginning = upToIncludingBeginning(extractionBounds);
 		auto parentFunctionParameters =
-			parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
+			parentFunctionBeginning.firstParameterList().withoutTypes();
 		auto neededReturnedFromExtracted = 
 			Set{ remainingParentFunction.undeclaredIdentifiers() }
 			.excluding(parentFunctionParameters);
 		auto extractedBody = betweenIncludingEnd(extractionBounds);
 		using namespace std::string_literals;
 		Code extractedFunctionReturnType = neededReturnedFromExtracted.size()
-			? extractedBody.parameterType(*neededReturnedFromExtracted.begin())
+			? extractedBody.deducedType(*neededReturnedFromExtracted.begin())
 			: "void"s;
 		Code extractedFunctionReturnAssignment{};
 		Code extractedFunctionReturnStatement{};
@@ -72,7 +72,7 @@ public:
 			"("s + commaSeparated(extractedBody.undeclaredIdentifiers()) + ");"s;
 		auto extractedFunctionParameterList =
 			commaSeparated(
-				parentFunctionBeginning.deduceTypes(
+				parentFunctionBeginning.joinDeducedTypes(
 					extractedBody.undeclaredIdentifiers()
 				)
 			);
@@ -211,7 +211,6 @@ public:
 
 	std::set<std::string> undeclaredIdentifiers() {
 		std::set<std::string> undeclared_{};
-		auto search{ *this };
 		for (auto p : invokedParameters())
 			if (isUndeclared(p))
 				undeclared_.insert(p);
@@ -241,32 +240,32 @@ public:
 		return result;
 	}
 
-	std::vector<std::string> deduceTypes(std::set<std::string> parameters) {
+	std::vector<std::string> joinDeducedTypes(std::set<std::string> parameters) {
 		std::vector<std::string> withTypes{};
-		for (auto item : parameterTypes(parameters))
+		for (auto item : deducedTypes(parameters))
 			withTypes.push_back(item.second.content + " " + item.first);
 		return withTypes;
 	}
 
-	std::map<std::string, Code> parameterTypes(std::set<std::string> parameters) {
+	std::map<std::string, Code> deducedTypes(std::set<std::string> parameters) {
 		std::map<std::string, Code> types{};
 		for (auto parameter : parameters)
-			types[parameter] = parameterType(parameter);
+			types[parameter] = deducedType(parameter);
 		return types;
 	}
 
-	Code parameterType(std::string parameter) {
+	Code deducedType(std::string parameter) {
 		return 
 			upUntilLastOf(std::move(parameter))
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
 	}
 
-	std::vector<std::string> parametersWithoutTypes() {
-		std::vector<std::string> withoutTypes{};
+	std::vector<std::string> withoutTypes() {
+		std::vector<std::string> without_{};
 		for (auto s : commaSplit())
-			withoutTypes.push_back(s.followingLastOf(" ").content);
-		return withoutTypes;
+			without_.push_back(s.followingLastOf(" ").content);
+		return without_;
 	}
 };
 
