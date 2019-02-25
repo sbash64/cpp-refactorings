@@ -5,6 +5,26 @@
 #include <algorithm>
 #include <iterator>
 
+template<typename container>
+class Set {
+	container items;
+public:
+	explicit Set(container items) : items{ std::move(items) } {}
+
+	template<typename other>
+	container excluding(other others) {
+		container exclusion{};
+		std::set_difference(
+			items.begin(),
+			items.end(),
+			others.begin(),
+			others.end(),
+			std::inserter(exclusion, exclusion.begin())
+		);
+		return exclusion;
+	}
+};
+
 class Code {
 	std::string content;
 public:
@@ -18,42 +38,21 @@ public:
 		int last;
 	};
 
-	template<typename container>
-	class Set {
-		container items;
-	public:
-		explicit Set(container items) : items{ std::move(items) } {}
-
-		template<typename other>
-		container excluding(other others) {
-			container exclusion{};
-			std::set_difference(
-				items.begin(),
-				items.end(),
-				others.begin(),
-				others.end(),
-				std::inserter(exclusion, exclusion.begin())
-			);
-			return exclusion;
-		}
-	};
-
 	Code(std::string s = {}) : content{ std::move(s) } {}
 
 	std::string extractFunction(
-		ExtractedLines lineBoundaries,
+		ExtractedLines extractedLines,
 		std::string newName
 	) {
-		auto extractionBounds = lineBounds(lineBoundaries);
-		auto parentFunctionBeginning = upToIncludingBeginning(extractionBounds);
-		auto extractedBody = betweenIncludingEnd(extractionBounds);
+		auto extractionBounds = lineBounds(extractedLines);
 		auto remainingParentFunction = endAndFollowing(extractionBounds);
-		auto undeclaredFollowingExtraction =
-			Set{ remainingParentFunction.undeclaredIdentifiers() };
-		auto parentFunctionParameters = 
+		auto parentFunctionBeginning = upToIncludingBeginning(extractionBounds);
+		auto parentFunctionParameters =
 			parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
 		auto neededReturnedFromExtracted = 
-			undeclaredFollowingExtraction.excluding(parentFunctionParameters);
+			Set{ remainingParentFunction.undeclaredIdentifiers() }
+			.excluding(parentFunctionParameters);
+		auto extractedBody = betweenIncludingEnd(extractionBounds);
 		using namespace std::string_literals;
 		Code extractedFunctionReturnType = neededReturnedFromExtracted.size()
 			? extractedBody.parameterType(*neededReturnedFromExtracted.begin())
@@ -73,7 +72,7 @@ public:
 			"("s + commaSeparated(extractedBody.undeclaredIdentifiers()) + ");"s;
 		auto extractedFunctionParameterList =
 			commaSeparated(
-				parentFunctionBeginning.parametersWithTypes(
+				parentFunctionBeginning.deduceTypes(
 					extractedBody.undeclaredIdentifiers()
 				)
 			);
@@ -179,8 +178,8 @@ public:
 		return content + b.content;
 	}
 
-	std::vector<std::string> commaSplit() {
-		std::vector<std::string> split;
+	std::vector<Code> commaSplit() {
+		std::vector<Code> split;
 		auto search{ *this };
 		for (
 			auto found = search.content.find(","); 
@@ -204,7 +203,7 @@ public:
 			bounds = search.firstParameterListBounds()
 		) {
 			for (auto p : search.between(bounds).commaSplit())
-				parameters.insert(p);
+				parameters.insert(p.content);
 			search = search.endAndFollowing(bounds);
 		}
 		return parameters;
@@ -239,7 +238,7 @@ public:
 		return result;
 	}
 
-	std::vector<std::string> parametersWithTypes(std::set<std::string> parameters) {
+	std::vector<std::string> deduceTypes(std::set<std::string> parameters) {
 		std::vector<std::string> withTypes{};
 		for (auto item : parameterTypes(parameters))
 			withTypes.push_back(item.second.content + " " + item.first);
@@ -254,7 +253,8 @@ public:
 	}
 
 	Code parameterType(std::string parameter) {
-		return upUntilLastOf(parameter)
+		return 
+			upUntilLastOf(std::move(parameter))
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
 	}
@@ -262,7 +262,7 @@ public:
 	std::vector<std::string> parametersWithoutTypes() {
 		std::vector<std::string> withoutTypes{};
 		for (auto s : commaSplit())
-			withoutTypes.push_back(Code{ s }.followingLastOf(" ").content);
+			withoutTypes.push_back(s.followingLastOf(" ").content);
 		return withoutTypes;
 	}
 };
