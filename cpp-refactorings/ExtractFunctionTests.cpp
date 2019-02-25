@@ -29,7 +29,8 @@ public:
 		auto extractedBody = betweenIncludingEnd(extractionBounds);
 		auto remainingParentFunction = endAndAfter(extractionBounds);
 		auto undeclaredFollowingExtraction = remainingParentFunction.undeclaredIdentifiers();
-		auto parentFunctionParameters = parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
+		auto parentFunctionParameters = 
+			parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
 		std::set<std::string> neededReturnedFromExtracted{};
 		std::set_difference(
 			undeclaredFollowingExtraction.begin(), 
@@ -80,7 +81,7 @@ public:
 		LineBoundaries boundaries
 	) {
 		ContentBounds bounds{};
-		bounds.beginning = find_nth_element(boundaries.first - 1, '\n');
+		bounds.beginning = find_nth_element(boundaries.first - 1U, '\n');
 		bounds.end = find_nth_element(boundaries.last, '\n');
 		return bounds;
 	}
@@ -88,7 +89,7 @@ public:
 	std::string::size_type find_nth_element(int n, char what) {
 		auto found = std::string::npos;
 		for (int i = 0; i < n; ++i)
-			found = content.find(what, found + 1);
+			found = content.find(what, found + 1U);
 		return found;
 	}
 
@@ -99,26 +100,26 @@ public:
 	ContentBounds findFirstParameterListBounds() {
 		ContentBounds bounds{};
 		bounds.beginning = content.find('(');
-		bounds.end = content.find(')', bounds.beginning + 1);
+		bounds.end = content.find(')', bounds.beginning + 1U);
 		return bounds;
 	}
 
 	CodeString betweenBounds(ContentBounds bounds) {
 		return content.substr(
-			bounds.beginning + 1,
-			bounds.end - bounds.beginning - 1
+			bounds.beginning + 1U,
+			bounds.end - bounds.beginning - 1U
 		);
 	}
 
 	CodeString betweenIncludingEnd(ContentBounds bounds) {
 		return content.substr(
-			bounds.beginning + 1,
+			bounds.beginning + 1U,
 			bounds.end - bounds.beginning
 		);
 	}
 
 	CodeString upToAndIncludingBeginning(ContentBounds bounds) {
-		return content.substr(0, bounds.beginning + 1);
+		return content.substr(0, bounds.beginning + 1U);
 	}
 
 	CodeString endAndAfter(ContentBounds bounds) {
@@ -138,20 +139,20 @@ public:
 	}
 	
 	CodeString upIncludingLastNotOf(std::string what) {
-		return content.substr(0, content.find_last_not_of(what) + 1);
+		return content.substr(0, content.find_last_not_of(what) + 1U);
 	}
 
 	CodeString followingLastOf(std::string what) {
-		return content.substr(content.find_last_of(what) + 1);
+		return content.substr(content.find_last_of(what) + 1U);
 	}
 
 	CodeString followingLastOfEither(std::string this_, std::string that_) {
 		return content.substr(
-			std::max(content.find_last_of(this_) + 1, content.find_last_of(that_) + 1));
+			std::max(content.find_last_of(this_) + 1U, content.find_last_of(that_) + 1U));
 	}
 
 	CodeString upThroughLastOf(std::string what) {
-		return content.substr(0, content.find_last_of(what) + 1);
+		return content.substr(0, content.find_last_of(what) + 1U);
 	}
 
 	CodeString lastAssignedName() {
