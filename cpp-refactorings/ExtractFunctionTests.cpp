@@ -213,14 +213,17 @@ public:
 		std::set<std::string> undeclared_{};
 		auto search{ *this };
 		for (auto p : invokedParameters())
-			if (
-				search.upUntilFirstOf(p)
-				.upIncludingLastNotOf(" ")
-				.followingLastOf(" ")
-				.contains("(")
-			)
+			if (isUndeclared(p))
 				undeclared_.insert(p);
 		return undeclared_;
+	}
+
+	bool isUndeclared(std::string s) {
+		return
+			upUntilFirstOf(std::move(s))
+			.upIncludingLastNotOf(" ")
+			.followingLastOf(" ")
+			.contains("(");
 	}
 
 	bool contains(std::string what) {
