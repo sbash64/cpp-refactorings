@@ -18,10 +18,30 @@ public:
 		int last;
 	};
 
+	template<typename container>
+	class Set {
+		container items;
+	public:
+		explicit Set(container items) : items{ std::move(items) } {}
+
+		template<typename other>
+		container excluding(other others) {
+			container exclusion{};
+			std::set_difference(
+				items.begin(),
+				items.end(),
+				others.begin(),
+				others.end(),
+				std::inserter(exclusion, exclusion.begin())
+			);
+			return exclusion;
+		}
+	};
+
 	CodeString(std::string s = {}) : content{ std::move(s) } {}
 
 	std::string extractFunction(
-		CodeString::LineBoundaries lineBoundaries,
+		LineBoundaries lineBoundaries,
 		std::string newName
 	) {
 		auto extractionBounds = findLineBounds(lineBoundaries);
@@ -31,13 +51,8 @@ public:
 		auto undeclaredFollowingExtraction = remainingParentFunction.undeclaredIdentifiers();
 		auto parentFunctionParameters = 
 			parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
-		std::set<std::string> neededReturnedFromExtracted{};
-		std::set_difference(
-			undeclaredFollowingExtraction.begin(), 
-			undeclaredFollowingExtraction.end(), 
-			parentFunctionParameters.begin(), 
-			parentFunctionParameters.end(),
-			std::inserter(neededReturnedFromExtracted, neededReturnedFromExtracted.begin()));
+		auto neededReturnedFromExtracted = 
+			Set{ undeclaredFollowingExtraction }.excluding(parentFunctionParameters);
 		using namespace std::string_literals;
 		CodeString extractedFunctionReturnType = neededReturnedFromExtracted.size()
 			? extractedBody.parameterType(*neededReturnedFromExtracted.begin())
