@@ -3,6 +3,7 @@
 #include <set>
 #include <map>
 #include <algorithm>
+#include <iterator>
 
 class CodeString {
 	std::string content;
@@ -24,11 +25,24 @@ public:
 		std::string newName
 	) {
 		auto extractionBounds = findLineBounds(lineBoundaries);
+		auto parentFunctionBeginning = upToAndIncludingBeginning(extractionBounds);
 		auto extractedBody = betweenIncludingEnd(extractionBounds);
-		auto extractedFunctionReturnType = extractedBody.lastAssignmentReturnType();
+		auto remainingParentFunction = endAndAfter(extractionBounds);
+		auto undeclaredFollowingExtraction = remainingParentFunction.undeclaredIdentifiers();
+		auto parentFunctionParameters = parentFunctionBeginning.firstParameterList().parametersWithoutTypes();
+		std::set<std::string> neededReturnedFromExtracted{};
+		std::set_difference(
+			undeclaredFollowingExtraction.begin(), 
+			undeclaredFollowingExtraction.end(), 
+			parentFunctionParameters.begin(), 
+			parentFunctionParameters.end(),
+			std::inserter(neededReturnedFromExtracted, neededReturnedFromExtracted.begin()));
+		using namespace std::string_literals;
+		CodeString extractedFunctionReturnType = neededReturnedFromExtracted.size()
+			? extractedBody.parameterType(*neededReturnedFromExtracted.begin())
+			: "void"s;
 		CodeString extractedFunctionReturnAssignment{};
 		CodeString extractedFunctionReturnStatement{};
-		using namespace std::string_literals;
 		if (extractedFunctionReturnType.content != "void") {
 			auto extractedFunctionReturnName = extractedBody.lastAssignedName();
 			extractedFunctionReturnAssignment =
@@ -40,7 +54,6 @@ public:
 		auto extractedFunctionInvocation =
 			extractedFunctionReturnAssignment + newName +
 			"("s + commaSeparated(extractedBody.undeclaredIdentifiers()) + ");"s;
-		auto parentFunctionBeginning = upToAndIncludingBeginning(extractionBounds);
 		auto extractedFunctionParameterList =
 			commaSeparated(
 				parentFunctionBeginning.parametersWithTypes(
@@ -50,7 +63,6 @@ public:
 		auto extractedFunctionDeclaration =
 			extractedFunctionReturnType + " "s + newName +
 			"("s + extractedFunctionParameterList + ")"s;
-		auto remainingParentFunction = endAndAfter(extractionBounds);
 
 		return
 			parentFunctionBeginning.content +
@@ -153,7 +165,7 @@ public:
 
 	CodeString followingLastOfEither(std::string this_, std::string that_) {
 		return content.substr(
-			std::max(content.find_last_of(this_), content.find_last_of(that_)) + 1);
+			std::max(content.find_last_of(this_) + 1, content.find_last_of(that_) + 1));
 	}
 
 	CodeString upThroughLastOf(std::string what) {
@@ -168,8 +180,8 @@ public:
 		return content + b.content;
 	}
 
-	std::vector<CodeString> splitParameterList() {
-		std::vector<CodeString> split;
+	std::vector<std::string> splitParameterList() {
+		std::vector<std::string> split;
 		CodeString search{ *this };
 		for (
 			auto found = search.content.find(","); 
@@ -193,7 +205,7 @@ public:
 			bounds = search.findFirstParameterListBounds()
 		) {
 			for (auto p : search.betweenBounds(bounds).splitParameterList())
-				parameters.insert(p.content);
+				parameters.insert(p);
 			search = search.endAndAfter(bounds);
 		}
 		return parameters;
@@ -242,6 +254,13 @@ public:
 		return upUntilLastOf(parameter)
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
+	}
+
+	std::vector<std::string> parametersWithoutTypes() {
+		std::vector<std::string> withoutTypes{};
+		for (auto s : splitParameterList())
+			withoutTypes.push_back(CodeString{ s }.followingLastOf(" ").content);
+		return withoutTypes;
 	}
 };
 
@@ -656,6 +675,29 @@ TEST_F(ExtractFunctionTests, twoLinesOneArgumentSecondVariableReturned) {
 			"    int x = a(z);\n"
 			"    int y = b(x);\n"
 			"    c(y);\n"
+			"}",
+			{ 2, 3 },
+			"g"
+		)
+	);
+}
+
+TEST_F(ExtractFunctionTests, twoLinesNoArgumentsVoidReturnDespiteAssignment) {
+	assertEqual(
+		"void f() {\n"
+		"    g();\n"
+		"    c();\n"
+		"}\n"
+		"\n"
+		"void g() {\n"
+		"    int x = a();\n"
+		"    b(x);\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    int x = a();\n"
+			"    b(x);\n"
+			"    c();\n"
 			"}",
 			{ 2, 3 },
 			"g"
