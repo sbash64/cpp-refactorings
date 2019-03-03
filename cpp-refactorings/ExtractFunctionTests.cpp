@@ -721,3 +721,55 @@ TEST_F(ExtractFunctionTests, twoLinesNoArgumentsVoidReturnDespiteAssignment) {
 		)
 	);
 }
+
+TEST_F(ExtractFunctionTests, tbd) {
+	assertEqual(
+		"void RefactoredModel::prepareAudioPlayer(\n"
+		"    AudioFrameReader &reader,\n"
+		"    int framesPerBuffer,\n"
+		"    std::string audioDevice\n"
+		") {\n"
+		"    IAudioPlayer::Preparation playing = preparation(reader, framesPerBuffer, audioDevice);\n"
+		"    try {\n"
+		"        player->prepareToPlay(std::move(playing));\n"
+		"    }\n"
+		"    catch (const IAudioPlayer::PreparationFailure &e) {\n"
+		"        throw RequestFailure{ e.what() };\n"
+		"    }\n"
+		"}\n"
+		"\n"
+		"IAudioPlayer::Preparation preparation(\n"
+		"    AudioFrameReader &reader,\n"
+		"    int framesPerBuffer,\n"
+		"    std::string audioDevice\n"
+		") {\n"
+		"    IAudioPlayer::Preparation playing;\n"
+		"    playing.channels = reader.channels();\n"
+		"    playing.sampleRate = reader.sampleRate();\n"
+		"    playing.framesPerBuffer = framesPerBuffer;\n"
+		"    playing.audioDevice = std::move(audioDevice);\n"
+		"    return playing;\n"
+		"}",
+		extractFunction(
+			"void RefactoredModel::prepareAudioPlayer(\n"
+			"    AudioFrameReader &reader,\n"
+			"    int framesPerBuffer,\n"
+			"    std::string audioDevice\n"
+		    ") {\n"    
+			"    IAudioPlayer::Preparation playing;\n"
+	        "    playing.channels = reader.channels();\n"
+	        "    playing.sampleRate = reader.sampleRate();\n"
+	        "    playing.framesPerBuffer = framesPerBuffer;\n"
+	        "    playing.audioDevice = std::move(audioDevice);\n"
+	        "    try {\n"
+		    "        player->prepareToPlay(std::move(playing));\n"
+	        "    }\n"
+	        "    catch (const IAudioPlayer::PreparationFailure &e) {\n"
+		    "        throw RequestFailure{ e.what() };\n"
+	        "    }\n"
+			"}",
+			{ 6, 10 },
+			"preparation"
+		)
+	);
+}
