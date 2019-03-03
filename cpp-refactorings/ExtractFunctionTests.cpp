@@ -47,15 +47,13 @@ public:
 		auto extractionBounds = lineBounds(extractedLines);
 		auto remainingParentFunction = endAndFollowing(extractionBounds);
 		auto parentFunctionBeginning = upToIncludingBeginning(extractionBounds);
-		auto parentFunctionParameters =
-			parentFunctionBeginning.firstParameterList().withoutTypes();
-		auto neededReturnedFromExtracted = 
+		auto undeclaredIdentifiersAfterExtraction = 
 			Set{ remainingParentFunction.undeclaredIdentifiers() }
-			.excluding(parentFunctionParameters);
+			.excluding(parentFunctionBeginning.firstParameterList().withoutTypes());
 		auto extractedBody = betweenIncludingEnd(extractionBounds);
 		using namespace std::string_literals;
-		Code extractedFunctionReturnType = neededReturnedFromExtracted.size()
-			? extractedBody.deducedType(*neededReturnedFromExtracted.begin())
+		Code extractedFunctionReturnType = undeclaredIdentifiersAfterExtraction.size()
+			? extractedBody.deducedType(*undeclaredIdentifiersAfterExtraction.begin())
 			: "void"s;
 		Code extractedFunctionReturnAssignment{};
 		Code extractedFunctionReturnStatement{};
@@ -96,9 +94,13 @@ public:
 		ExtractedLines boundaries
 	) {
 		ContentBounds bounds{};
-		bounds.beginning = find_nth_element(boundaries.first - 1U, '\n');
-		bounds.end = find_nth_element(boundaries.last, '\n');
+		bounds.beginning = findLineEnding(boundaries.first - 1);
+		bounds.end = findLineEnding(boundaries.last);
 		return bounds;
+	}
+
+	std::string::size_type findLineEnding(int n) {
+		return find_nth_element(n, '\n');
 	}
 
 	std::string::size_type find_nth_element(int n, char what) {
