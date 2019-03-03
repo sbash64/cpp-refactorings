@@ -106,8 +106,12 @@ public:
 	std::string::size_type find_nth_element(int n, char what) {
 		auto found = std::string::npos;
 		for (int i = 0; i < n; ++i)
-			found = content.find(what, found + 1U);
+			found = find(what, found + 1U);
 		return found;
+	}
+
+	std::string::size_type find(char what, std::string::size_type offset = 0) {
+		return content.find(what, offset);
 	}
 
 	Code firstParameterList() {
@@ -116,8 +120,8 @@ public:
 
 	ContentBounds firstParameterListBounds() {
 		ContentBounds bounds{};
-		bounds.beginning = content.find('(');
-		bounds.end = content.find(')', bounds.beginning + 1U);
+		bounds.beginning = find('(');
+		bounds.end = find(')', bounds.beginning + 1U);
 		return bounds;
 	}
 
@@ -184,9 +188,9 @@ public:
 		std::vector<Code> split;
 		auto search{ *this };
 		for (
-			auto found = search.content.find(","); 
+			auto found = search.find(','); 
 			found != std::string::npos; 
-			found = search.content.find(",")
+			found = search.content.find(',')
 		) {
 			split.push_back(search.content.substr(0, found));
 			search = { search.content.substr(found + 2) };
