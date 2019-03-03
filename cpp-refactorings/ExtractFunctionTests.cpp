@@ -28,9 +28,11 @@ public:
 class Code {
 	std::string content;
 public:
+	using size_type = std::string::size_type;
+
 	struct ContentBounds {
-		std::string::size_type beginning;
-		std::string::size_type end;
+		size_type beginning;
+		size_type end;
 	};
 
 	struct ExtractedLines {
@@ -99,18 +101,18 @@ public:
 		return bounds;
 	}
 
-	std::string::size_type findLineEnding(int n) {
+	size_type findLineEnding(int n) {
 		return find_nth_element(n, '\n');
 	}
 
-	std::string::size_type find_nth_element(int n, char what) {
+	size_type find_nth_element(int n, char what) {
 		auto found = std::string::npos;
 		for (int i = 0; i < n; ++i)
 			found = find(what, found + 1U);
 		return found;
 	}
 
-	std::string::size_type find(char what, std::string::size_type offset = 0) {
+	size_type find(char what, size_type offset = 0) {
 		return content.find(what, offset);
 	}
 
@@ -126,45 +128,49 @@ public:
 	}
 
 	Code between(ContentBounds bounds) {
-		return content.substr(
+		return substr(
 			bounds.beginning + 1U,
 			bounds.end - bounds.beginning - 1U
 		);
 	}
 
+	Code substr(size_type offset, size_type count = std::string::npos) {
+		return content.substr(offset, count);
+	}
+
 	Code betweenIncludingEnd(ContentBounds bounds) {
-		return content.substr(
+		return substr(
 			bounds.beginning + 1U,
 			bounds.end - bounds.beginning
 		);
 	}
 
 	Code upToIncludingBeginning(ContentBounds bounds) {
-		return content.substr(0, bounds.beginning + 1U);
+		return substr(0, bounds.beginning + 1U);
 	}
 
 	Code endAndFollowing(ContentBounds bounds) {
-		return content.substr(bounds.end);
+		return substr(bounds.end);
 	}
 
 	Code upUntilLastOf(std::string what) {
-		return content.substr(0, content.find_last_of(std::move(what)));
+		return substr(0, content.find_last_of(std::move(what)));
 	}
 
 	Code upUntilFirstOf(std::string what) {
-		return content.substr(0, content.find_first_of(std::move(what)));
+		return substr(0, content.find_first_of(std::move(what)));
 	}
 	
 	Code upIncludingLastNotOf(std::string what) {
-		return content.substr(0, content.find_last_not_of(std::move(what)) + 1U);
+		return substr(0, content.find_last_not_of(std::move(what)) + 1U);
 	}
 
 	Code followingLastOf(std::string what) {
-		return content.substr(content.find_last_of(std::move(what)) + 1U);
+		return substr(content.find_last_of(std::move(what)) + 1U);
 	}
 
 	Code followingLastOfEither(std::string this_, std::string that_) {
-		return content.substr(
+		return substr(
 			std::max(
 				content.find_last_of(std::move(this_)) + 1U, 
 				content.find_last_of(std::move(that_)) + 1U
@@ -173,7 +179,7 @@ public:
 	}
 
 	Code upThroughLastOf(std::string what) {
-		return content.substr(0, content.find_last_of(std::move(what)) + 1U);
+		return substr(0, content.find_last_of(std::move(what)) + 1U);
 	}
 
 	Code lastAssignedName() {
@@ -190,10 +196,10 @@ public:
 		for (
 			auto found = search.find(','); 
 			found != std::string::npos; 
-			found = search.content.find(',')
+			found = search.find(',')
 		) {
-			split.push_back(search.content.substr(0, found));
-			search = { search.content.substr(found + 2) };
+			split.push_back(search.substr(0, found));
+			search = { search.substr(found + 2) };
 		}
 		if (!search.content.empty())
 			split.push_back(search.content);
