@@ -43,8 +43,8 @@ public:
 	Code(std::string s = {}) : content{ std::move(s) } {}
 
 	std::string extractFunction(
-		ExtractedLines extractedLines,
-		std::string newName
+		const ExtractedLines &extractedLines,
+		const std::string &newName
 	) {
 		auto extractionBounds = range(extractedLines);
 		auto remainingParentFunction = endAndFollowing(extractionBounds);
@@ -92,10 +92,8 @@ public:
 
 	}
 
-	ContentRange range(
-		const ExtractedLines &lines
-	) {
-		ContentRange range_{};
+	ContentRange range(const ExtractedLines &lines) {
+		ContentRange range_;
 		range_.beginning = findLineEnding(lines.first - 1);
 		range_.end = findLineEnding(lines.last);
 		return range_;
@@ -121,7 +119,7 @@ public:
 	}
 
 	ContentRange firstParameterListRange() {
-		ContentRange range_{};
+		ContentRange range_;
 		range_.beginning = find('(');
 		range_.end = find(')', range_.beginning + 1U);
 		return range_;
@@ -153,7 +151,7 @@ public:
 		return substr(range_.end);
 	}
 
-	Code upUntilLastOf(std::string what) {
+	Code upUntilLastOf(const std::string &what) {
 		return substr(0, find_last_of(what));
 	}
 
@@ -161,19 +159,19 @@ public:
 		return content.find_last_of(what);
 	}
 
-	Code upUntilFirstOf(std::string what) {
-		return substr(0, content.find_first_of(std::move(what)));
+	Code upUntilFirstOf(const std::string &what) {
+		return substr(0, content.find_first_of(what));
 	}
 	
-	Code upIncludingLastNotOf(std::string what) {
-		return substr(0, content.find_last_not_of(std::move(what)) + 1U);
+	Code upIncludingLastNotOf(const std::string &what) {
+		return substr(0, content.find_last_not_of(what) + 1U);
 	}
 
-	Code followingLastOf(std::string what) {
+	Code followingLastOf(const std::string &what) {
 		return substr(find_last_of(what) + 1U);
 	}
 
-	Code followingLastOfEither(std::string this_, std::string that_) {
+	Code followingLastOfEither(const std::string &this_, const std::string &that_) {
 		return substr(
 			std::max(
 				find_last_of(this_) + 1U, 
@@ -182,7 +180,7 @@ public:
 		);
 	}
 
-	Code upThroughLastOf(std::string what) {
+	Code upThroughLastOf(const std::string &what) {
 		return substr(0, find_last_of(what) + 1U);
 	}
 
@@ -226,28 +224,28 @@ public:
 	}
 
 	std::set<std::string> undeclaredIdentifiers() {
-		std::set<std::string> undeclared_{};
+		std::set<std::string> undeclared_;
 		for (auto p : invokedParameters())
 			if (isUndeclared(p))
 				undeclared_.insert(p);
 		return undeclared_;
 	}
 
-	bool isUndeclared(std::string s) {
+	bool isUndeclared(const std::string &s) {
 		return
-			upUntilFirstOf(std::move(s))
+			upUntilFirstOf(s)
 			.upIncludingLastNotOf(" ")
 			.followingLastOf(" ")
 			.contains("(");
 	}
 
-	bool contains(std::string what) {
-		return content.find(std::move(what)) != std::string::npos;
+	bool contains(const std::string &what) {
+		return content.find(what) != std::string::npos;
 	}
 	
 	template<typename container>
 	Code commaSeparated(container items) {
-		Code result{};
+		Code result;
 		for (auto it = items.begin(); it != items.end(); ++it) {
 			result.content += *it;
 			if (std::next(it) != items.end())
@@ -256,29 +254,29 @@ public:
 		return result;
 	}
 
-	std::vector<std::string> joinDeducedTypes(std::set<std::string> parameters) {
-		std::vector<std::string> withTypes{};
+	std::vector<std::string> joinDeducedTypes(const std::set<std::string> &parameters) {
+		std::vector<std::string> withTypes;
 		for (auto item : deducedTypes(parameters))
 			withTypes.push_back(item.second.content + " " + item.first);
 		return withTypes;
 	}
 
-	std::map<std::string, Code> deducedTypes(std::set<std::string> parameters) {
-		std::map<std::string, Code> types{};
+	std::map<std::string, Code> deducedTypes(const std::set<std::string> &parameters) {
+		std::map<std::string, Code> types;
 		for (auto parameter : parameters)
 			types[parameter] = deducedType(parameter);
 		return types;
 	}
 
-	Code deducedType(std::string parameter) {
+	Code deducedType(const std::string &parameter) {
 		return 
-			upUntilLastOf(std::move(parameter))
+			upUntilLastOf(parameter)
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
 	}
 
 	std::vector<std::string> withoutTypes() {
-		std::vector<std::string> without_{};
+		std::vector<std::string> without_;
 		for (auto s : commaSplit())
 			without_.push_back(s.followingLastOf(" ").content);
 		return without_;
@@ -287,10 +285,10 @@ public:
 
 std::string extractFunction(
 	std::string original, 
-	Code::ExtractedLines lineBoundaries,
-	std::string newName
+	const Code::ExtractedLines &lineBoundaries,
+	const std::string &newName
 ) {
-	Code code{ original };
+	Code code{ std::move(original) };
 	return code.extractFunction(lineBoundaries, newName);
 }
 
