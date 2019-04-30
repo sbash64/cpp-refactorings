@@ -47,16 +47,16 @@ public:
 		const std::string &newName
 	) {
 		auto extractedRange = range(extractedLines);
+		auto extractedBody = betweenIncludingEnd(extractedRange);
 		auto afterExtracted = endAndFollowing(extractedRange);
 		auto beforeExtracted = upToIncludingBeginning(extractedRange);
 		auto undeclaredIdentifiersAfterExtracted = 
 			afterExtracted.remainingUndeclaredIdentifiers(beforeExtracted);
-		auto extractedBody = betweenIncludingEnd(extractedRange);
-		using namespace std::string_literals;
 		auto extractedFunctionReturnType = 
 			extractedBody.typeName(undeclaredIdentifiersAfterExtracted);
 		Code extractedFunctionReturnAssignment;
 		Code extractedFunctionReturnStatement;
+		using namespace std::string_literals;
 		if (extractedFunctionReturnType.content != "void") {
 			auto extractedFunctionReturnName = extractedBody.lastAssignedName();
 			extractedFunctionReturnAssignment =
