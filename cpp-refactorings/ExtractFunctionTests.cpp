@@ -46,25 +46,23 @@ public:
 		const ExtractedLines &extractedLines,
 		const std::string &newName
 	) {
-		auto extractionBounds = range(extractedLines);
-		auto remainingParentFunction = endAndFollowing(extractionBounds);
-		auto parentFunctionBeginning = upToIncludingBeginning(extractionBounds);
-		auto undeclaredIdentifiersAfterExtraction = 
-			Set{ remainingParentFunction.undeclaredIdentifiers() }
-			.excluding(parentFunctionBeginning.firstParameterList().withoutTypes());
-		auto extractedBody = betweenIncludingEnd(extractionBounds);
+		auto extractedRange = range(extractedLines);
+		auto afterExtracted = endAndFollowing(extractedRange);
+		auto beforeExtracted = upToIncludingBeginning(extractedRange);
+		auto undeclaredIdentifiersAfterExtracted = 
+			afterExtracted.remainingUndeclaredIdentifiers(beforeExtracted);
+		auto extractedBody = betweenIncludingEnd(extractedRange);
 		using namespace std::string_literals;
-		Code extractedFunctionReturnType = undeclaredIdentifiersAfterExtraction.size()
-			? extractedBody.deducedType(*undeclaredIdentifiersAfterExtraction.begin())
-			: "void"s;
-		Code extractedFunctionReturnAssignment{};
-		Code extractedFunctionReturnStatement{};
+		auto extractedFunctionReturnType = 
+			extractedBody.typeName(undeclaredIdentifiersAfterExtracted);
+		Code extractedFunctionReturnAssignment;
+		Code extractedFunctionReturnStatement;
 		if (extractedFunctionReturnType.content != "void") {
 			auto extractedFunctionReturnName = extractedBody.lastAssignedName();
 			extractedFunctionReturnAssignment =
 				extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
 			extractedFunctionReturnStatement =
-				"    return "s + extractedFunctionReturnName.content + ";\n"s;
+				Code{ "    return " } + extractedFunctionReturnName + ";\n"s;
 		}
 
 		auto extractedFunctionInvocation =
@@ -72,7 +70,7 @@ public:
 			"("s + commaSeparated(extractedBody.undeclaredIdentifiers()) + ");"s;
 		auto extractedFunctionParameterList =
 			commaSeparated(
-				parentFunctionBeginning.joinDeducedTypes(
+				beforeExtracted.joinDeducedTypes(
 					extractedBody.undeclaredIdentifiers()
 				)
 			);
@@ -81,16 +79,29 @@ public:
 			"("s + extractedFunctionParameterList + ")"s;
 
 		return
-			parentFunctionBeginning.content +
-			"    "s + extractedFunctionInvocation.content +
-			remainingParentFunction.content +
-			"\n"s
-			"\n" +
-			extractedFunctionDeclaration.content + " {\n"s +
-			extractedBody.content + extractedFunctionReturnStatement.content +
+			beforeExtracted +
+			"    "s + extractedFunctionInvocation +
+			afterExtracted +
+			"\n"s + 
+			"\n"s +
+			extractedFunctionDeclaration + " {\n"s +
+			extractedBody + extractedFunctionReturnStatement +
 			"}"s;
 
 	}
+
+	Code typeName(const std::set<std::string> &types) {
+		return types.size()
+			? deducedType(*types.begin())
+			: Code{ "void" };
+	}
+
+	std::set<std::string> remainingUndeclaredIdentifiers(const Code &code) {
+		return Set{ undeclaredIdentifiers() }
+		.excluding(code.firstParameterList().withoutTypes());
+	}
+
+	operator std::string() { return content;  }
 
 	ContentRange range(const ExtractedLines &lines) {
 		ContentRange range_;
@@ -110,29 +121,29 @@ public:
 		return found;
 	}
 
-	size_type find(char what, size_type offset = 0) {
+	size_type find(char what, size_type offset = 0) const {
 		return content.find(what, offset);
 	}
 
-	Code firstParameterList() {
+	Code firstParameterList() const {
 		return between(firstParameterListRange());
 	}
 
-	ContentRange firstParameterListRange() {
+	ContentRange firstParameterListRange() const {
 		ContentRange range_;
 		range_.beginning = find('(');
 		range_.end = find(')', range_.beginning + 1U);
 		return range_;
 	}
 
-	Code between(const ContentRange &range_) {
+	Code between(const ContentRange &range_) const {
 		return substr(
 			range_.beginning + 1U,
 			range_.end - range_.beginning - 1U
 		);
 	}
 
-	Code substr(size_type offset, size_type count = std::string::npos) {
+	Code substr(size_type offset, size_type count = std::string::npos) const {
 		return content.substr(offset, count);
 	}
 
