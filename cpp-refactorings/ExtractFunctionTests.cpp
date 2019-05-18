@@ -196,7 +196,7 @@ public:
 	}
 
 	Code lastAssignedName() {
-		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ");
+		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ").upUntilFirstOf(".");
 	}
 
 	Code operator+(const Code &b) const {
@@ -281,7 +281,7 @@ public:
 
 	Code deducedType(const std::string &parameter) {
 		return 
-			upUntilLastOf(parameter)
+			upUntilFirstOf(parameter)
 			.upIncludingLastNotOf(" ")
 			.followingLastOfEither("(", " ");
 	}
@@ -755,6 +755,32 @@ TEST_F(ExtractFunctionTests, tryCatch) {
 			"    }\n"
 			"}",
 			{ 2, 5 },
+			"g"
+		)
+	);
+}
+
+TEST_F(ExtractFunctionTests, structMemberAssignments) {
+	assertEqual(
+		"void f() {\n"
+		"    T a = g();\n"
+		"    d(a);\n"
+		"}\n"
+		"\n"
+		"T g() {\n"
+		"    T a;\n"
+		"    a.b = 0;\n"
+		"    a.c = 1;\n"
+		"    return a;\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    T a;\n"
+			"    a.b = 0;\n"
+			"    a.c = 1;\n"
+			"    d(a);\n"
+			"}",
+			{ 2, 4 },
 			"g"
 		)
 	);
