@@ -50,14 +50,12 @@ public:
 		auto extractedBody = betweenIncludingEnd(extractedRange);
 		auto afterExtracted = endAndFollowing(extractedRange);
 		auto beforeExtracted = upToIncludingBeginning(extractedRange);
-		auto undeclaredIdentifiersAfterExtracted = 
-			afterExtracted.remainingUndeclaredIdentifiers(beforeExtracted);
 		auto extractedFunctionReturnType = 
-			extractedBody.typeName(undeclaredIdentifiersAfterExtracted);
+			extractedBody.type(afterExtracted.remainingUndeclaredIdentifiers(beforeExtracted));
+		using namespace std::string_literals;
 		Code extractedFunctionReturnAssignment;
 		Code extractedFunctionReturnStatement;
-		using namespace std::string_literals;
-		if (extractedFunctionReturnType.content != "void") {
+		if (!extractedFunctionReturnType.isVoid()) {
 			auto extractedFunctionReturnName = extractedBody.lastAssignedName();
 			extractedFunctionReturnAssignment =
 				extractedFunctionReturnType + " "s + extractedFunctionReturnName + " = "s;
@@ -70,7 +68,7 @@ public:
 			"("s + commaSeparated(extractedBody.undeclaredIdentifiers()) + ");"s;
 		auto extractedFunctionParameterList =
 			commaSeparated(
-				beforeExtracted.joinDeducedTypes(
+				beforeExtracted.withTypes(
 					extractedBody.undeclaredIdentifiers()
 				)
 			);
@@ -90,15 +88,23 @@ public:
 
 	}
 
-	Code typeName(const std::set<std::string> &types) {
-		return types.size()
-			? deducedType(*types.begin())
-			: Code{ "void" };
+	bool isVoid() {
+		return content == void_();
+	}
+
+	std::string void_() {
+		return "void";
+	}
+
+	Code type(const std::set<std::string> &identifiers) {
+		return identifiers.size()
+			? type(*identifiers.begin())
+			: Code{ void_() };
 	}
 
 	std::set<std::string> remainingUndeclaredIdentifiers(const Code &code) {
 		return Set{ undeclaredIdentifiers() }
-		.excluding(code.firstParameterList().withoutTypes());
+			.excluding(code.firstParameterList().withoutTypes());
 	}
 
 	operator std::string() { return content;  }
@@ -196,7 +202,11 @@ public:
 	}
 
 	Code lastAssignedName() {
-		return upUntilLastOf("=").upIncludingLastNotOf(" ").followingLastOf(" ").upUntilFirstOf(".");
+		return 
+			upUntilLastOf("=")
+			.upIncludingLastNotOf(" ")
+			.followingLastOf(" ")
+			.upUntilFirstOf(".");
 	}
 
 	Code operator+(const Code &b) const {
@@ -265,21 +275,21 @@ public:
 		return result;
 	}
 
-	std::vector<std::string> joinDeducedTypes(const std::set<std::string> &parameters) {
+	std::vector<std::string> withTypes(const std::set<std::string> &identifiers) {
 		std::vector<std::string> withTypes;
-		for (auto item : deducedTypes(parameters))
-			withTypes.push_back(item.second.content + " " + item.first);
+		for (auto item : types(identifiers))
+			withTypes.push_back(item.second + std::string{ " " } + item.first);
 		return withTypes;
 	}
 
-	std::map<std::string, Code> deducedTypes(const std::set<std::string> &parameters) {
+	std::map<std::string, Code> types(const std::set<std::string> &parameters) {
 		std::map<std::string, Code> types;
 		for (auto parameter : parameters)
-			types[parameter] = deducedType(parameter);
+			types[parameter] = type(parameter);
 		return types;
 	}
 
-	Code deducedType(const std::string &parameter) {
+	Code type(const std::string &parameter) {
 		return 
 			upUntilFirstOf(parameter)
 			.upIncludingLastNotOf(" ")
