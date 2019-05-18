@@ -735,6 +735,31 @@ TEST_F(ExtractFunctionTests, twoLinesNoArgumentsVoidReturnDespiteAssignment) {
 	);
 }
 
+TEST_F(ExtractFunctionTests, tryCatch) {
+	assertEqual(
+		"void f() {\n"
+		"    g();\n"
+		"}\n"
+		"\n"
+		"void g() {\n"
+		"    try {\n"
+		"        a();\n"
+		"    } catch (const std::runtime_error &) {\n"
+		"    }\n"
+		"}",
+		extractFunction(
+			"void f() {\n"
+			"    try {\n"
+			"        a();\n"
+			"    } catch (const std::runtime_error &) {\n"
+			"    }\n"
+			"}",
+			{ 2, 5 },
+			"g"
+		)
+	);
+}
+
 TEST_F(ExtractFunctionTests, DISABLED_tbd) {
 	assertEqual(
 		"void RefactoredModel::prepareAudioPlayer(\n"
